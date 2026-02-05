@@ -1,0 +1,159 @@
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
+import { parseNaturalLanguageQuery } from "@/lib/ai-search-parser";
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const query = body.query?.trim();
+
+    if (!query || typeof query !== "string") {
+      return NextResponse.json(
+        { error: "Missing 'query' field" },
+        { status: 400 }
+      );
+    }
+
+    if (query.length > 500) {
+      return NextResponse.json(
+        { error: "Query too long (max 500 characters)" },
+        { status: 400 }
+      );
+    }
+
+    const limit = Math.min(
+      Math.max(1, parseInt(body.limit || "24", 10)),
+      100
+    );
+    const page = Math.max(1, parseInt(body.page || "1", 10));
+    const skip = (page - 1) * limit;
+
+    // Parse natural language query into structured filters
+    const { filters, interpretation } = parseNaturalLanguageQuery(query);
+
+    // Build Prisma where clause from parsed filters
+    const where: Prisma.CarWhereInput = { isActive: true };
+
+    if (filters.brand) {
+      where.brand = { equals: filters.brand, mode: "insensitive" };
+    }
+
+    if (filters.vehicleType) {
+      where.vehicleType = { equals: filters.vehicleType, mode: "insensitive" };
+    }
+
+    if (filters.condition) {
+      where.condition = { equals: filters.condition, mode: "insensitive" };
+    }
+
+    if (filters.minPrice || filters.maxPrice) {
+      where.price = {};
+      if (filters.minPrice) {
+        (where.price as Prisma.IntNullableFilter).gte = filters.minPrice;
+      }
+      if (filters.maxPrice) {
+        (where.price as Prisma.IntNullableFilter).lte = filters.maxPrice;
+      }
+    }
+
+    if (filters.yearFrom || filters.yearTo) {
+      where.year = {};
+      if (filters.yearFrom) {
+        (where.year as Prisma.IntFilter).gte = filters.yearFrom;
+      }
+      if (filters.yearTo) {
+        (where.year as Prisma.IntFilter).lte = filters.yearTo;
+      }
+    }
+
+    if (filters.maxMileage) {
+      where.mileage = { lte: filters.maxMileage };
+    }
+
+    if (filters.search) {
+      where.OR = [
+        { brand: { contains: filters.search, mode: "insensitive" } },
+        { model: { contains: filters.search, mode: "insensitive" } },
+        { trim: { contains: filters.search, mode: "insensitive" } },
+        { description: { contains: filters.search, mode: "insensitive" } },
+      ];
+    }
+
+    // Build sort
+    let orderBy: Prisma.CarOrderByWithRelationInput;
+    switch (filters.sort) {
+      case "price_asc":
+        orderBy = { price: { sort: "asc", nulls: "last" } };
+        break;
+      case "price_desc":
+        orderBy = { price: { sort: "desc", nulls: "last" } };
+        break;
+      case "year_desc":
+        orderBy = { year: "desc" };
+        break;
+      case "year_asc":
+        orderBy = { year: "asc" };
+        break;
+      case "mileage_asc":
+        orderBy = { mileage: { sort: "asc", nulls: "last" } };
+        break;
+      default:
+        orderBy = { createdAt: "desc" };
+        break;
+    }
+
+    // Execute query
+    const [cars, total] = await Promise.all([
+      prisma.car.findMany({
+        where,
+        include: { dealer: true },
+        orderBy,
+        skip,
+        take: limit,
+      }),
+      prisma.car.count({ where }),
+    ]);
+
+    const totalPages = Math.ceil(total / limit);
+
+    return NextResponse.json({
+      cars,
+      total,
+      page,
+      totalPages,
+      interpretation,
+      parsedFilters: filters,
+      query,
+    });
+  } catch (error) {
+    console.error("AI search error:", error);
+    return NextResponse.json(
+      { error: "AI search failed" },
+      { status: 500 }
+    );
+  }
+}
+
+// Also support GET for URL-based access with ?q= parameter
+export async function GET(request: NextRequest) {
+  const q = request.nextUrl.searchParams.get("q");
+  if (!q) {
+    return NextResponse.json(
+      { error: "Missing 'q' query parameter" },
+      { status: 400 }
+    );
+  }
+
+  const limit = request.nextUrl.searchParams.get("limit") || "24";
+  const page = request.nextUrl.searchParams.get("page") || "1";
+
+  // Reuse POST handler logic
+  const fakeRequest = new NextRequest(request.url, {
+    method: "POST",
+    body: JSON.stringify({ query: q, limit, page }),
+    headers: { "Content-Type": "application/json" },
+  });
+
+  return POST(fakeRequest);
+}
