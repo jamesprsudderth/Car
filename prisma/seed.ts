@@ -368,7 +368,7 @@ async function createCar(
   const trimIndex = template.trims.indexOf(trim);
   const trimFactor = 1 + (trimIndex / template.trims.length) * 0.3;
   const basePrice = template.priceRange[0] + Math.random() * (template.priceRange[1] - template.priceRange[0]);
-  const price = Math.round(basePrice * ageFactor * condFactor * trimFactor / 100) * 100;
+  const price = Math.max(2000, Math.round(basePrice * ageFactor * condFactor * trimFactor / 100) * 100);
 
   let mileage: number | null = null;
   if (condition === "New") {

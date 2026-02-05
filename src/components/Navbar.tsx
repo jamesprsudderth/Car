@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Search, Store, User } from "lucide-react";
+import { Search, Store } from "lucide-react";
 import CarLogo from "./CarLogo";
 
 export default function Navbar() {
@@ -46,11 +46,14 @@ export default function Navbar() {
             </Link>
           </div>
 
-          {/* Right Actions */}
-          <div className="flex items-center gap-3">
-            <button className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center text-text-secondary hover:bg-gray-200 transition-colors">
-              <User className="w-4 h-4" />
-            </button>
+          {/* Mobile nav links */}
+          <div className="flex md:hidden items-center gap-1">
+            <Link href="/" className={`p-2 rounded-lg ${pathname === "/" ? "text-accent" : "text-text-secondary"}`}>
+              <Search className="w-5 h-5" />
+            </Link>
+            <Link href="/dealers" className={`p-2 rounded-lg ${pathname === "/dealers" ? "text-accent" : "text-text-secondary"}`}>
+              <Store className="w-5 h-5" />
+            </Link>
           </div>
         </div>
       </div>

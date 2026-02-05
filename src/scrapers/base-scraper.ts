@@ -86,7 +86,7 @@ export abstract class BaseScraper {
               imageUrl: car.imageUrl ?? existing.imageUrl,
               imageUrls:
                 car.imageUrls && car.imageUrls.length > 0
-                  ? JSON.stringify(car.imageUrls)
+                  ? car.imageUrls
                   : existing.imageUrls,
               description: car.description ?? existing.description,
               isActive: true,
@@ -117,7 +117,7 @@ export abstract class BaseScraper {
               engine: car.engine,
               vin: car.vin,
               imageUrl: car.imageUrl,
-              imageUrls: car.imageUrls ? JSON.stringify(car.imageUrls) : null,
+              imageUrls: car.imageUrls ?? [],
               description: car.description,
               isActive: true,
               firstSeen: new Date(),

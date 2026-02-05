@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "@/lib/prisma";
 
 function isAuthorized(request: NextRequest): boolean {
   const authHeader = request.headers.get("Authorization");
@@ -30,19 +30,13 @@ export async function POST(request: NextRequest) {
 
   try {
     const { runAllScrapers } = await import("@/scrapers/index");
-    const prisma = new PrismaClient();
+    const result = await runAllScrapers(prisma);
 
-    try {
-      const result = await runAllScrapers(prisma);
-
-      return NextResponse.json({
-        success: true,
-        message: "Scraping completed successfully",
-        result,
-      });
-    } finally {
-      await prisma.$disconnect();
-    }
+    return NextResponse.json({
+      success: true,
+      message: "Scraping completed successfully",
+      result,
+    });
   } catch (error) {
     console.error("Scraping failed:", error);
     return NextResponse.json(

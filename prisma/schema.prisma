@@ -3,8 +3,8 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = "file:./dev.db"
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model Dealer {
@@ -48,7 +48,7 @@ model Car {
   vin           String?
 
   imageUrl      String?
-  imageUrls     String?  // JSON array stored as string (SQLite compat)
+  imageUrls     String[]
   description   String?
 
   isActive      Boolean  @default(true)

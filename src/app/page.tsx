@@ -438,7 +438,7 @@ function HomePageContent() {
     fetchMeta();
   }, []);
 
-  const currentYear = new Date().getFullYear() + 1;
+  const currentYear = new Date().getFullYear();
   const yearOptions: number[] = [];
   const minYear = data?.filters?.yearRange?.min || 2000;
   for (let y = currentYear; y >= minYear; y--) {
@@ -454,6 +454,8 @@ function HomePageContent() {
             <Sparkles className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-accent" />
             <input
               type="text"
+              role="searchbox"
+              aria-label="Search cars"
               placeholder='Search cars — try "SUVs under $25k" or "used Honda Civic"...'
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
