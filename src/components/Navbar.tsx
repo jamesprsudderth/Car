@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Car, Search, Store, User } from "lucide-react";
+import { Search, Store, User } from "lucide-react";
+import CarLogo from "./CarLogo";
 
 export default function Navbar() {
   const pathname = usePathname();
@@ -12,12 +13,10 @@ export default function Navbar() {
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-14">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2.5 group">
-            <div className="w-8 h-8 bg-accent rounded-lg flex items-center justify-center">
-              <Car className="w-4 h-4 text-white" />
-            </div>
+          <Link href="/" className="flex items-center gap-2 group">
+            <CarLogo className="w-10 h-5 text-accent group-hover:text-accent-hover transition-colors" />
             <span className="font-display text-xl text-primary tracking-tight">
-              automarket<span className="text-accent">.nyc</span>
+              automarket<span className="text-accent">.NYC</span>
             </span>
           </Link>
 

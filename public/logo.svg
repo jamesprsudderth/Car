@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 200" fill="none">
+  <!-- Car Silhouette -->
+  <g transform="translate(60, 10)">
+    <path d="
+      M 0,95
+      C 5,93 12,90 22,87
+      C 32,84 42,80 55,74
+      C 65,69 75,63 87,54
+      C 96,47 105,39 116,30
+      C 125,23 135,16 148,11
+      C 161,6 175,3 192,2
+      C 209,1 224,2 237,5
+      C 247,7 255,11 261,17
+      C 267,23 271,30 274,38
+      L 278,34
+      C 280,37 281,42 282,48
+      C 283,55 283,63 283,72
+      C 283,80 283,88 283,95
+      L 0,95
+      Z
+    " fill="currentColor"/>
+    <!-- Windshield line detail -->
+    <path d="
+      M 95,52
+      C 105,42 118,30 135,20
+      C 145,14 156,9 170,6
+    " stroke="currentColor" stroke-width="0.5" fill="none" opacity="0.3"/>
+  </g>
+  <!-- Text: automarket.NYC -->
+  <text x="200" y="160" text-anchor="middle" font-family="'DM Sans', sans-serif" font-weight="700" font-size="48" letter-spacing="-1" fill="currentColor">
+    automarket<tspan fill="#22c55e">.NYC</tspan>
+  </text>
+</svg>
