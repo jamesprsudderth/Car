@@ -16,9 +16,7 @@ import {
   LayoutGrid,
   List,
   RotateCcw,
-  Eye,
   Sparkles,
-  ArrowRight,
   Loader2,
 } from "lucide-react";
 
@@ -138,7 +136,12 @@ function ResultsGridSkeleton() {
 
 function CarCard({ car }: { car: CarListing }) {
   return (
-    <div className="group bg-white rounded-xl border border-border overflow-hidden hover:shadow-card-hover hover:border-gray-300 transition-all duration-200 flex flex-col">
+    <a
+      href={car.listingUrl}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="group bg-white rounded-xl border border-border overflow-hidden hover:shadow-card-hover hover:border-gray-300 transition-all duration-200 flex flex-col cursor-pointer"
+    >
       {/* Image */}
       <div className="aspect-[16/10] relative overflow-hidden bg-gray-50">
         {car.imageUrl ? (
@@ -165,10 +168,17 @@ function CarCard({ car }: { car: CarListing }) {
       {/* Content */}
       <div className="p-3.5 flex flex-col flex-1">
         {/* Title */}
-        <h3 className="text-text font-semibold text-sm leading-snug mb-1.5 line-clamp-1">
+        <h3 className="text-text font-semibold text-sm leading-snug mb-1 line-clamp-1">
           {car.year} {car.brand} {car.model}
           {car.trim ? ` ${car.trim}` : ""}
         </h3>
+
+        {/* Description */}
+        {car.description && (
+          <p className="text-[11px] text-text-muted leading-relaxed mb-2 line-clamp-2">
+            {car.description}
+          </p>
+        )}
 
         {/* Spec Tags */}
         <div className="flex flex-wrap gap-1 mb-2.5">
@@ -207,15 +217,10 @@ function CarCard({ car }: { car: CarListing }) {
               </span>
             )}
           </div>
-          <a
-            href={car.listingUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 text-accent hover:text-accent-hover text-xs font-semibold transition-colors"
-          >
-            <Eye className="w-3.5 h-3.5" />
-            View Details
-          </a>
+          <span className="inline-flex items-center gap-1 text-accent group-hover:text-accent-hover text-xs font-semibold transition-colors">
+            <ExternalLink className="w-3.5 h-3.5" />
+            View at Dealer
+          </span>
         </div>
 
         {/* Dealer */}
@@ -224,17 +229,9 @@ function CarCard({ car }: { car: CarListing }) {
           <span className="text-[11px] text-text-muted truncate">
             {car.dealer.name}
           </span>
-          <a
-            href={car.listingUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="ml-auto"
-          >
-            <ExternalLink className="w-3 h-3 text-text-muted hover:text-accent transition-colors" />
-          </a>
         </div>
       </div>
-    </div>
+    </a>
   );
 }
 
@@ -281,13 +278,13 @@ function HomePageContent() {
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
-  // AI Search state
-  const [aiMode, setAiMode] = useState(false);
-  const [aiQuery, setAiQuery] = useState("");
+  // Unified search state
+  const [searchInput, setSearchInput] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
   const [aiResults, setAiResults] = useState<CarsResponse | null>(null);
   const [aiInterpretation, setAiInterpretation] = useState("");
   const [aiParsedFilters, setAiParsedFilters] = useState<Record<string, string | number> | null>(null);
+  const [isAiSearch, setIsAiSearch] = useState(false);
 
   // Filter state from URL
   const brand = searchParams.get("brand") || "";
@@ -330,10 +327,18 @@ function HomePageContent() {
     router.push("/", { scroll: false });
   }, [router]);
 
-  // AI Search handler
-  const handleAiSearch = useCallback(async (queryOverride?: string) => {
-    const q = queryOverride ?? aiQuery;
-    if (!q.trim()) return;
+  // Unified smart search handler
+  const handleSearch = useCallback(async (queryOverride?: string) => {
+    const q = (queryOverride ?? searchInput).trim();
+    if (!q) {
+      // Clear AI results, show standard results
+      setIsAiSearch(false);
+      setAiResults(null);
+      setAiInterpretation("");
+      setAiParsedFilters(null);
+      return;
+    }
+    setIsAiSearch(true);
     setAiLoading(true);
     setAiResults(null);
     setAiInterpretation("");
@@ -342,9 +347,9 @@ function HomePageContent() {
       const res = await fetch("/api/ai-search", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: q.trim() }),
+        body: JSON.stringify({ query: q }),
       });
-      if (!res.ok) throw new Error("AI search failed");
+      if (!res.ok) throw new Error("Search failed");
       const json = await res.json();
       setAiResults({
         cars: json.cars,
@@ -356,18 +361,18 @@ function HomePageContent() {
       setAiInterpretation(json.interpretation);
       setAiParsedFilters(json.parsedFilters);
     } catch (err) {
-      console.error("AI search error:", err);
+      console.error("Search error:", err);
     } finally {
       setAiLoading(false);
     }
-  }, [aiQuery]);
+  }, [searchInput]);
 
-  const exitAiMode = useCallback(() => {
-    setAiMode(false);
+  const clearSearch = useCallback(() => {
+    setSearchInput("");
+    setIsAiSearch(false);
     setAiResults(null);
     setAiInterpretation("");
     setAiParsedFilters(null);
-    setAiQuery("");
   }, []);
 
   // Fetch cars
@@ -442,159 +447,102 @@ function HomePageContent() {
 
   return (
     <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-5">
-      {/* ── Top Search Bar ──────────────────────────────────────────── */}
+      {/* ── Smart Search Bar ─────────────────────────────────────────── */}
       <div className="mb-5">
-        {/* Mode Toggle */}
-        <div className="flex items-center gap-2 mb-3">
+        <div className="flex gap-3 items-center">
+          <div className="flex-1 relative">
+            <Sparkles className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-accent" />
+            <input
+              type="text"
+              placeholder='Search cars — try "SUVs under $25k" or "used Honda Civic"...'
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleSearch();
+              }}
+              className="filter-input w-full pl-10 pr-10 py-3 text-sm rounded-xl border-border bg-white shadow-card"
+            />
+            {searchInput && (
+              <button
+                onClick={clearSearch}
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-text-muted hover:text-text"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
           <button
-            onClick={() => { if (aiMode) exitAiMode(); }}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200
-              ${!aiMode
-                ? "bg-accent text-white shadow-sm"
-                : "bg-gray-50 border border-border text-text-secondary hover:text-text hover:border-gray-300"
-              }`}
+            onClick={() => handleSearch()}
+            disabled={aiLoading}
+            className="btn-primary py-3 px-6 rounded-xl shadow-card disabled:opacity-50"
           >
-            <Search className="w-3.5 h-3.5" />
-            Standard
-          </button>
-          <button
-            onClick={() => setAiMode(true)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200
-              ${aiMode
-                ? "bg-gradient-to-r from-purple-500 to-accent text-white shadow-sm"
-                : "bg-gray-50 border border-border text-text-secondary hover:text-text hover:border-gray-300"
-              }`}
-          >
-            <Sparkles className="w-3.5 h-3.5" />
-            AI Search
+            {aiLoading ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Search className="w-4 h-4" />
+            )}
+            {aiLoading ? "Searching..." : "Search"}
           </button>
         </div>
 
-        {!aiMode ? (
-          <>
-            {/* Standard search */}
-            <div className="flex gap-3 items-center">
-              <div className="flex-1 relative">
-                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
-                <input
-                  type="text"
-                  placeholder="Make, Model, or Keyword..."
-                  value={search}
-                  onChange={(e) => updateParams({ search: e.target.value })}
-                  className="filter-input w-full pl-10 pr-10 py-3 text-sm rounded-xl border-border bg-white shadow-card"
-                />
-                {search && (
-                  <button
-                    onClick={() => updateParams({ search: "" })}
-                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-text-muted hover:text-text"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                )}
-              </div>
+        {/* Quick search suggestions */}
+        {!isAiSearch && !aiLoading && (
+          <div className="flex flex-wrap items-center gap-2 mt-3">
+            <span className="text-[11px] text-text-muted font-medium">Try:</span>
+            {[
+              "SUVs under $25k",
+              "New BMW sedans",
+              "Low mileage trucks",
+              "Used Honda Civic",
+              "Electric vehicles",
+              "Sporty coupes under $40k",
+            ].map((example) => (
               <button
-                onClick={() => {/* search triggers automatically */}}
-                className="btn-primary py-3 px-6 rounded-xl shadow-card"
+                key={example}
+                onClick={() => {
+                  setSearchInput(example);
+                  handleSearch(example);
+                }}
+                className="text-[11px] px-2.5 py-1 rounded-full border border-border text-text-secondary hover:bg-accent-light hover:text-accent hover:border-green-200 transition-all"
               >
-                <Search className="w-4 h-4" />
-                Search
+                {example}
               </button>
-            </div>
-          </>
-        ) : (
-          <>
-            {/* AI Search */}
-            <div className="flex gap-3 items-center">
-              <div className="flex-1 relative">
-                <Sparkles className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-purple-400" />
-                <input
-                  type="text"
-                  placeholder="Try: &quot;cheap SUVs under 20k&quot; or &quot;new BMW sedans 2023 or newer&quot;..."
-                  value={aiQuery}
-                  onChange={(e) => setAiQuery(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") handleAiSearch();
-                  }}
-                  className="filter-input w-full pl-10 pr-10 py-3 text-sm rounded-xl border-purple-200 bg-white shadow-card focus:ring-purple-300 focus:border-purple-400"
-                />
-                {aiQuery && (
-                  <button
-                    onClick={() => { setAiQuery(""); setAiResults(null); setAiInterpretation(""); }}
-                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-text-muted hover:text-text"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                )}
-              </div>
-              <button
-                onClick={() => handleAiSearch()}
-                disabled={aiLoading || !aiQuery.trim()}
-                className="bg-gradient-to-r from-purple-500 to-accent hover:from-purple-600 hover:to-accent-hover text-white font-semibold px-6 py-3 rounded-xl transition-all duration-200 text-sm inline-flex items-center gap-2 shadow-card disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {aiLoading ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <ArrowRight className="w-4 h-4" />
-                )}
-                {aiLoading ? "Searching..." : "Ask AI"}
-              </button>
-            </div>
+            ))}
+          </div>
+        )}
 
-            {/* Example queries */}
-            {!aiResults && !aiLoading && (
-              <div className="flex flex-wrap gap-2 mt-3">
-                {[
-                  "Cheap SUVs under $20k",
-                  "New BMW sedans",
-                  "Low mileage trucks under 50k miles",
-                  "Used Honda Civic around $15,000",
-                  "Luxury cars 2023 or newer",
-                  "Electric vehicles",
-                  "Family minivans under $35k",
-                  "Sporty coupes under $40k",
-                ].map((example) => (
-                  <button
-                    key={example}
-                    onClick={() => {
-                      setAiQuery(example);
-                      handleAiSearch(example);
-                    }}
-                    className="text-[11px] px-2.5 py-1 rounded-full border border-purple-200 text-purple-600 hover:bg-purple-50 hover:border-purple-300 transition-all"
-                  >
-                    {example}
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {/* AI Interpretation */}
-            {aiInterpretation && (
-              <div className="mt-3 px-3.5 py-2.5 bg-purple-50 rounded-xl border border-purple-100">
-                <div className="flex items-start gap-2">
-                  <Sparkles className="w-3.5 h-3.5 text-purple-500 mt-0.5 flex-shrink-0" />
-                  <div>
-                    <p className="text-xs text-purple-700 font-medium">{aiInterpretation}</p>
-                    {aiParsedFilters && Object.keys(aiParsedFilters).length > 0 && (
-                      <div className="flex flex-wrap gap-1.5 mt-1.5">
-                        {Object.entries(aiParsedFilters).map(([key, value]) => (
-                          <span
-                            key={key}
-                            className="text-[10px] px-2 py-0.5 bg-white rounded-md border border-purple-200 text-purple-600 font-medium"
-                          >
-                            {key}: {String(value)}
-                          </span>
-                        ))}
-                      </div>
-                    )}
+        {/* AI Interpretation Banner */}
+        {aiInterpretation && isAiSearch && (
+          <div className="mt-3 px-3.5 py-2.5 bg-accent-light rounded-xl border border-green-100">
+            <div className="flex items-start gap-2">
+              <Sparkles className="w-3.5 h-3.5 text-accent mt-0.5 flex-shrink-0" />
+              <div className="flex-1">
+                <p className="text-xs text-green-800 font-medium">{aiInterpretation}</p>
+                {aiParsedFilters && Object.keys(aiParsedFilters).length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mt-1.5">
+                    {Object.entries(aiParsedFilters).map(([key, value]) => (
+                      <span
+                        key={key}
+                        className="text-[10px] px-2 py-0.5 bg-white rounded-md border border-green-200 text-green-700 font-medium"
+                      >
+                        {key}: {String(value)}
+                      </span>
+                    ))}
                   </div>
-                </div>
+                )}
               </div>
-            )}
-          </>
+              <button
+                onClick={clearSearch}
+                className="text-green-600 hover:text-green-800 transition-colors"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
         )}
 
         {/* Stats bar */}
-        {stats && !aiMode && (
+        {stats && !isAiSearch && (
           <div className="flex items-center gap-4 mt-3 text-xs text-text-muted">
             <span>
               <span className="font-semibold text-text">{stats.totalActiveCars.toLocaleString()}</span> vehicles available
@@ -610,7 +558,7 @@ function HomePageContent() {
       {/* ── Main Layout: Sidebar + Content ──────────────────────────── */}
       <div className="flex gap-6">
         {/* ── Left Sidebar Filters ──────────────────────────────────── */}
-        <aside className={`hidden lg:block w-64 flex-shrink-0 ${aiMode ? "lg:hidden" : ""}`}>
+        <aside className={`hidden lg:block w-64 flex-shrink-0 ${isAiSearch ? "lg:hidden" : ""}`}>
           <div className="bg-white rounded-xl border border-border p-4 shadow-card sticky top-20">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-sm font-bold text-text">Filters</h2>
@@ -760,24 +708,21 @@ function HomePageContent() {
           {/* Sort bar */}
           <div className="flex items-center justify-between mb-4 bg-white rounded-xl border border-border px-4 py-3 shadow-card">
             <p className="text-sm text-text-secondary">
-              {aiMode ? (
+              {isAiSearch ? (
                 aiLoading ? (
                   <span className="inline-flex items-center gap-2">
-                    <Loader2 className="w-3.5 h-3.5 animate-spin text-purple-500" />
-                    <span className="text-purple-600">Searching with AI...</span>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin text-accent" />
+                    <span>Searching...</span>
                   </span>
                 ) : aiResults ? (
                   <>
-                    <Sparkles className="w-3.5 h-3.5 text-purple-500 inline mr-1" />
-                    AI found{" "}
+                    Found{" "}
                     <span className="font-bold text-text">
                       {aiResults.total.toLocaleString()}
                     </span>{" "}
                     results
                   </>
-                ) : (
-                  <span className="text-purple-600">Enter a natural language query above</span>
-                )
+                ) : null
               ) : loading ? (
                 <span className="inline-block w-28 h-4 bg-gray-100 rounded animate-pulse" />
               ) : (
@@ -808,16 +753,16 @@ function HomePageContent() {
                 </button>
               </div>
 
-              {/* Sort (only in standard mode) */}
-              {!aiMode && (
+              {/* Sort */}
+              {!isAiSearch && (
                 <select
                   value={sort}
                   onChange={(e) => updateParams({ sort: e.target.value })}
                   className="filter-select text-sm"
                 >
                   <option value="newest">Recently Added</option>
-                  <option value="price_asc">Price: Low &rarr; High</option>
-                  <option value="price_desc">Price: High &rarr; Low</option>
+                  <option value="price_asc">Price: Low to High</option>
+                  <option value="price_desc">Price: High to Low</option>
                   <option value="year_desc">Year: Newest</option>
                   <option value="year_asc">Year: Oldest</option>
                   <option value="mileage_asc">Mileage: Lowest</option>
@@ -827,7 +772,7 @@ function HomePageContent() {
           </div>
 
           {/* Mobile Filters (shown on small screens, standard mode only) */}
-          {!aiMode && (
+          {!isAiSearch && (
             <div className="lg:hidden mb-4 grid grid-cols-2 sm:grid-cols-3 gap-2">
               <select value={brand} onChange={(e) => updateParams({ brand: e.target.value })} className="filter-select text-sm">
                 <option value="">Make</option>
@@ -847,7 +792,7 @@ function HomePageContent() {
           )}
 
           {/* Results Grid */}
-          {aiMode ? (
+          {isAiSearch ? (
             // AI Mode Results
             aiLoading ? (
               <ResultsGridSkeleton />
@@ -918,7 +863,7 @@ function HomePageContent() {
           )}
 
           {/* Pagination */}
-          {!aiMode && data && data.totalPages > 1 && (
+          {!isAiSearch && data && data.totalPages > 1 && (
             <nav className="flex items-center justify-center gap-2 mt-8">
               <button
                 onClick={() => updateParams({ page: (page - 1).toString() })}
@@ -973,7 +918,12 @@ function HomePageContent() {
 
 function ListCard({ car }: { car: CarListing }) {
   return (
-    <div className="flex bg-white rounded-xl border border-border overflow-hidden hover:shadow-card-hover hover:border-gray-300 transition-all duration-200">
+    <a
+      href={car.listingUrl}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="group flex bg-white rounded-xl border border-border overflow-hidden hover:shadow-card-hover hover:border-gray-300 transition-all duration-200 cursor-pointer"
+    >
       {/* Image */}
       <div className="w-48 flex-shrink-0 relative bg-gray-50">
         {car.imageUrl ? (
@@ -1002,6 +952,11 @@ function ListCard({ car }: { car: CarListing }) {
             {car.year} {car.brand} {car.model}
             {car.trim ? ` ${car.trim}` : ""}
           </h3>
+          {car.description && (
+            <p className="text-[11px] text-text-muted leading-relaxed mb-1.5 line-clamp-1">
+              {car.description}
+            </p>
+          )}
           <div className="flex items-center gap-1.5 mb-2">
             <MapPin className="w-3 h-3 text-text-muted" />
             <span className="text-[11px] text-text-muted">{car.dealer.name}</span>
@@ -1034,18 +989,13 @@ function ListCard({ car }: { car: CarListing }) {
           ) : (
             <span className="text-xs text-text-muted italic">Contact for Price</span>
           )}
-          <a
-            href={car.listingUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 text-accent hover:text-accent-hover text-xs font-semibold transition-colors"
-          >
-            <Eye className="w-3.5 h-3.5" />
-            View Details
-          </a>
+          <span className="inline-flex items-center gap-1 text-accent group-hover:text-accent-hover text-xs font-semibold transition-colors">
+            <ExternalLink className="w-3.5 h-3.5" />
+            View at Dealer
+          </span>
         </div>
       </div>
-    </div>
+    </a>
   );
 }
 

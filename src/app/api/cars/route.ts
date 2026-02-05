@@ -32,15 +32,15 @@ export async function GET(request: NextRequest) {
     };
 
     if (brand) {
-      where.brand = { equals: brand, mode: "insensitive" };
+      where.brand = brand;
     }
 
     if (vehicleType) {
-      where.vehicleType = { equals: vehicleType, mode: "insensitive" };
+      where.vehicleType = vehicleType;
     }
 
     if (condition) {
-      where.condition = { equals: condition, mode: "insensitive" };
+      where.condition = condition;
     }
 
     if (dealer) {
@@ -73,10 +73,10 @@ export async function GET(request: NextRequest) {
 
     if (search) {
       where.OR = [
-        { brand: { contains: search, mode: "insensitive" } },
-        { model: { contains: search, mode: "insensitive" } },
-        { trim: { contains: search, mode: "insensitive" } },
-        { description: { contains: search, mode: "insensitive" } },
+        { brand: { contains: search } },
+        { model: { contains: search } },
+        { trim: { contains: search } },
+        { description: { contains: search } },
       ];
     }
 
@@ -84,10 +84,10 @@ export async function GET(request: NextRequest) {
     let orderBy: Prisma.CarOrderByWithRelationInput;
     switch (sort) {
       case "price_asc":
-        orderBy = { price: { sort: "asc", nulls: "last" } };
+        orderBy = { price: "asc" };
         break;
       case "price_desc":
-        orderBy = { price: { sort: "desc", nulls: "last" } };
+        orderBy = { price: "desc" };
         break;
       case "year_desc":
         orderBy = { year: "desc" };
@@ -96,7 +96,7 @@ export async function GET(request: NextRequest) {
         orderBy = { year: "asc" };
         break;
       case "mileage_asc":
-        orderBy = { mileage: { sort: "asc", nulls: "last" } };
+        orderBy = { mileage: "asc" };
         break;
       case "newest":
       default:

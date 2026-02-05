@@ -36,15 +36,15 @@ export async function POST(request: NextRequest) {
     const where: Prisma.CarWhereInput = { isActive: true };
 
     if (filters.brand) {
-      where.brand = { equals: filters.brand, mode: "insensitive" };
+      where.brand = filters.brand;
     }
 
     if (filters.vehicleType) {
-      where.vehicleType = { equals: filters.vehicleType, mode: "insensitive" };
+      where.vehicleType = filters.vehicleType;
     }
 
     if (filters.condition) {
-      where.condition = { equals: filters.condition, mode: "insensitive" };
+      where.condition = filters.condition;
     }
 
     if (filters.minPrice || filters.maxPrice) {
@@ -73,10 +73,10 @@ export async function POST(request: NextRequest) {
 
     if (filters.search) {
       where.OR = [
-        { brand: { contains: filters.search, mode: "insensitive" } },
-        { model: { contains: filters.search, mode: "insensitive" } },
-        { trim: { contains: filters.search, mode: "insensitive" } },
-        { description: { contains: filters.search, mode: "insensitive" } },
+        { brand: { contains: filters.search } },
+        { model: { contains: filters.search } },
+        { trim: { contains: filters.search } },
+        { description: { contains: filters.search } },
       ];
     }
 
@@ -84,10 +84,10 @@ export async function POST(request: NextRequest) {
     let orderBy: Prisma.CarOrderByWithRelationInput;
     switch (filters.sort) {
       case "price_asc":
-        orderBy = { price: { sort: "asc", nulls: "last" } };
+        orderBy = { price: "asc" };
         break;
       case "price_desc":
-        orderBy = { price: { sort: "desc", nulls: "last" } };
+        orderBy = { price: "desc" };
         break;
       case "year_desc":
         orderBy = { year: "desc" };
@@ -96,7 +96,7 @@ export async function POST(request: NextRequest) {
         orderBy = { year: "asc" };
         break;
       case "mileage_asc":
-        orderBy = { mileage: { sort: "asc", nulls: "last" } };
+        orderBy = { mileage: "asc" };
         break;
       default:
         orderBy = { createdAt: "desc" };

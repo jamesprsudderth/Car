@@ -2,6 +2,8 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
+// ── Dealers ──────────────────────────────────────────────────────────────────
+
 const dealers = [
   { name: "Major World", website: "https://majorworld.com", category: "NYC Dealership", scrapeType: "puppeteer" },
   { name: "Power Motors NYC", website: "https://www.powermotorsnyc.com", category: "NYC Dealership", scrapeType: "puppeteer" },
@@ -66,20 +68,222 @@ const dealers = [
   { name: "Sam's Club Auto Program", website: "https://www.samsclub.com/auto-buying-program.html", category: "Buying Program", scrapeType: "manual", scrapable: false },
 ];
 
+// ── Car inventory templates ──────────────────────────────────────────────────
+
+interface CarTemplate {
+  brand: string;
+  model: string;
+  vehicleType: string;
+  trims: string[];
+  yearRange: [number, number];
+  priceRange: [number, number];
+  engine?: string;
+  fuelType?: string;
+}
+
+const carTemplates: CarTemplate[] = [
+  // Toyota
+  { brand: "Toyota", model: "Camry", vehicleType: "Sedan", trims: ["LE", "SE", "XLE", "XSE", "TRD"], yearRange: [2019, 2025], priceRange: [22000, 38000], engine: "2.5L 4-Cylinder", fuelType: "Gasoline" },
+  { brand: "Toyota", model: "Corolla", vehicleType: "Sedan", trims: ["L", "LE", "SE", "XLE", "XSE"], yearRange: [2019, 2025], priceRange: [18000, 28000], engine: "2.0L 4-Cylinder", fuelType: "Gasoline" },
+  { brand: "Toyota", model: "RAV4", vehicleType: "SUV", trims: ["LE", "XLE", "XLE Premium", "Adventure", "TRD Off-Road", "Limited"], yearRange: [2019, 2025], priceRange: [27000, 42000], engine: "2.5L 4-Cylinder", fuelType: "Gasoline" },
+  { brand: "Toyota", model: "Highlander", vehicleType: "SUV", trims: ["L", "LE", "XLE", "XSE", "Limited", "Platinum"], yearRange: [2020, 2025], priceRange: [36000, 52000], engine: "3.5L V6", fuelType: "Gasoline" },
+  { brand: "Toyota", model: "Tacoma", vehicleType: "Truck", trims: ["SR", "SR5", "TRD Sport", "TRD Off-Road", "Limited", "TRD Pro"], yearRange: [2018, 2025], priceRange: [28000, 55000], engine: "3.5L V6", fuelType: "Gasoline" },
+  { brand: "Toyota", model: "4Runner", vehicleType: "SUV", trims: ["SR5", "SR5 Premium", "TRD Off-Road", "TRD Pro", "Limited"], yearRange: [2018, 2025], priceRange: [38000, 58000], engine: "4.0L V6", fuelType: "Gasoline" },
+  // Honda
+  { brand: "Honda", model: "Civic", vehicleType: "Sedan", trims: ["LX", "Sport", "EX", "EX-L", "Touring", "Si", "Type R"], yearRange: [2019, 2025], priceRange: [22000, 44000], engine: "2.0L 4-Cylinder", fuelType: "Gasoline" },
+  { brand: "Honda", model: "Accord", vehicleType: "Sedan", trims: ["LX", "Sport", "EX", "EX-L", "Sport 2.0T", "Touring"], yearRange: [2019, 2025], priceRange: [26000, 40000], engine: "1.5L Turbo", fuelType: "Gasoline" },
+  { brand: "Honda", model: "CR-V", vehicleType: "SUV", trims: ["LX", "EX", "EX-L", "Touring"], yearRange: [2019, 2025], priceRange: [27000, 40000], engine: "1.5L Turbo", fuelType: "Gasoline" },
+  { brand: "Honda", model: "Pilot", vehicleType: "SUV", trims: ["LX", "Sport", "EX-L", "Touring", "Elite", "TrailSport"], yearRange: [2019, 2025], priceRange: [35000, 52000], engine: "3.5L V6", fuelType: "Gasoline" },
+  { brand: "Honda", model: "HR-V", vehicleType: "SUV", trims: ["LX", "Sport", "EX-L"], yearRange: [2020, 2025], priceRange: [23000, 32000], engine: "2.0L 4-Cylinder", fuelType: "Gasoline" },
+  // BMW
+  { brand: "BMW", model: "3 Series", vehicleType: "Sedan", trims: ["330i", "330i xDrive", "M340i", "M340i xDrive"], yearRange: [2019, 2025], priceRange: [38000, 62000], engine: "2.0L Turbo", fuelType: "Gasoline" },
+  { brand: "BMW", model: "5 Series", vehicleType: "Sedan", trims: ["530i", "530i xDrive", "540i xDrive", "M550i"], yearRange: [2019, 2025], priceRange: [48000, 78000], engine: "2.0L Turbo", fuelType: "Gasoline" },
+  { brand: "BMW", model: "X3", vehicleType: "SUV", trims: ["sDrive30i", "xDrive30i", "M40i"], yearRange: [2019, 2025], priceRange: [40000, 62000], engine: "2.0L Turbo", fuelType: "Gasoline" },
+  { brand: "BMW", model: "X5", vehicleType: "SUV", trims: ["sDrive40i", "xDrive40i", "xDrive45e", "M50i"], yearRange: [2019, 2025], priceRange: [55000, 88000], engine: "3.0L Turbo I6", fuelType: "Gasoline" },
+  // Mercedes-Benz
+  { brand: "Mercedes-Benz", model: "C-Class", vehicleType: "Sedan", trims: ["C 300", "C 300 4MATIC", "AMG C 43", "AMG C 63"], yearRange: [2019, 2025], priceRange: [38000, 75000], engine: "2.0L Turbo", fuelType: "Gasoline" },
+  { brand: "Mercedes-Benz", model: "E-Class", vehicleType: "Sedan", trims: ["E 350", "E 350 4MATIC", "E 450", "AMG E 53"], yearRange: [2019, 2025], priceRange: [52000, 85000], engine: "3.0L Turbo I6", fuelType: "Gasoline" },
+  { brand: "Mercedes-Benz", model: "GLC", vehicleType: "SUV", trims: ["GLC 300", "GLC 300 4MATIC", "AMG GLC 43", "AMG GLC 63"], yearRange: [2020, 2025], priceRange: [42000, 80000], engine: "2.0L Turbo", fuelType: "Gasoline" },
+  // Ford
+  { brand: "Ford", model: "F-150", vehicleType: "Truck", trims: ["XL", "XLT", "Lariat", "King Ranch", "Platinum", "Tremor", "Raptor"], yearRange: [2018, 2025], priceRange: [32000, 78000], engine: "3.5L EcoBoost V6", fuelType: "Gasoline" },
+  { brand: "Ford", model: "Explorer", vehicleType: "SUV", trims: ["Base", "XLT", "Limited", "ST", "Platinum", "Timberline"], yearRange: [2020, 2025], priceRange: [35000, 60000], engine: "2.3L EcoBoost", fuelType: "Gasoline" },
+  { brand: "Ford", model: "Mustang", vehicleType: "Coupe", trims: ["EcoBoost", "EcoBoost Premium", "GT", "GT Premium", "Mach 1", "Dark Horse"], yearRange: [2019, 2025], priceRange: [28000, 65000], engine: "5.0L V8", fuelType: "Gasoline" },
+  { brand: "Ford", model: "Bronco", vehicleType: "SUV", trims: ["Base", "Big Bend", "Black Diamond", "Outer Banks", "Badlands", "Wildtrak", "Raptor"], yearRange: [2021, 2025], priceRange: [35000, 75000], engine: "2.7L EcoBoost V6", fuelType: "Gasoline" },
+  // Chevrolet
+  { brand: "Chevrolet", model: "Silverado 1500", vehicleType: "Truck", trims: ["WT", "Custom", "LT", "RST", "LT Trail Boss", "LTZ", "High Country"], yearRange: [2019, 2025], priceRange: [32000, 65000], engine: "5.3L V8", fuelType: "Gasoline" },
+  { brand: "Chevrolet", model: "Equinox", vehicleType: "SUV", trims: ["LS", "LT", "RS", "Premier"], yearRange: [2019, 2025], priceRange: [26000, 35000], engine: "1.5L Turbo", fuelType: "Gasoline" },
+  { brand: "Chevrolet", model: "Tahoe", vehicleType: "SUV", trims: ["LS", "LT", "RST", "Z71", "Premier", "High Country"], yearRange: [2021, 2025], priceRange: [52000, 78000], engine: "5.3L V8", fuelType: "Gasoline" },
+  { brand: "Chevrolet", model: "Camaro", vehicleType: "Coupe", trims: ["1LS", "1LT", "2LT", "LT1", "1SS", "2SS", "ZL1"], yearRange: [2019, 2024], priceRange: [26000, 72000], engine: "6.2L V8", fuelType: "Gasoline" },
+  // Jeep
+  { brand: "Jeep", model: "Wrangler", vehicleType: "SUV", trims: ["Sport", "Sport S", "Willys", "Sahara", "Rubicon", "Rubicon 392"], yearRange: [2018, 2025], priceRange: [30000, 82000], engine: "3.6L V6", fuelType: "Gasoline" },
+  { brand: "Jeep", model: "Grand Cherokee", vehicleType: "SUV", trims: ["Laredo", "Limited", "Trailhawk", "Overland", "Summit", "SRT", "Trackhawk"], yearRange: [2019, 2025], priceRange: [38000, 90000], engine: "3.6L V6", fuelType: "Gasoline" },
+  // Nissan
+  { brand: "Nissan", model: "Altima", vehicleType: "Sedan", trims: ["S", "SV", "SR", "SL", "Platinum"], yearRange: [2019, 2025], priceRange: [24000, 35000], engine: "2.5L 4-Cylinder", fuelType: "Gasoline" },
+  { brand: "Nissan", model: "Rogue", vehicleType: "SUV", trims: ["S", "SV", "SL", "Platinum"], yearRange: [2019, 2025], priceRange: [27000, 40000], engine: "1.5L Turbo", fuelType: "Gasoline" },
+  // Hyundai
+  { brand: "Hyundai", model: "Tucson", vehicleType: "SUV", trims: ["SE", "SEL", "N Line", "Limited", "XRT"], yearRange: [2019, 2025], priceRange: [26000, 38000], engine: "2.5L 4-Cylinder", fuelType: "Gasoline" },
+  { brand: "Hyundai", model: "Sonata", vehicleType: "Sedan", trims: ["SE", "SEL", "SEL Plus", "N Line", "Limited"], yearRange: [2020, 2025], priceRange: [25000, 36000], engine: "2.5L 4-Cylinder", fuelType: "Gasoline" },
+  { brand: "Hyundai", model: "Palisade", vehicleType: "SUV", trims: ["SE", "SEL", "XRT", "Limited", "Calligraphy"], yearRange: [2020, 2025], priceRange: [35000, 52000], engine: "3.8L V6", fuelType: "Gasoline" },
+  // Kia
+  { brand: "Kia", model: "Telluride", vehicleType: "SUV", trims: ["LX", "S", "EX", "SX", "SX Prestige", "X-Pro"], yearRange: [2020, 2025], priceRange: [35000, 52000], engine: "3.8L V6", fuelType: "Gasoline" },
+  { brand: "Kia", model: "Sportage", vehicleType: "SUV", trims: ["LX", "EX", "SX", "SX Prestige", "X-Pro"], yearRange: [2020, 2025], priceRange: [28000, 40000], engine: "2.5L 4-Cylinder", fuelType: "Gasoline" },
+  // Subaru
+  { brand: "Subaru", model: "Outback", vehicleType: "Wagon", trims: ["Base", "Premium", "Onyx Edition XT", "Limited", "Touring", "Wilderness"], yearRange: [2019, 2025], priceRange: [28000, 42000], engine: "2.5L Flat-4", fuelType: "Gasoline" },
+  { brand: "Subaru", model: "Forester", vehicleType: "SUV", trims: ["Base", "Premium", "Sport", "Limited", "Touring", "Wilderness"], yearRange: [2019, 2025], priceRange: [28000, 40000], engine: "2.5L Flat-4", fuelType: "Gasoline" },
+  { brand: "Subaru", model: "Crosstrek", vehicleType: "SUV", trims: ["Base", "Premium", "Sport", "Limited", "Wilderness"], yearRange: [2019, 2025], priceRange: [24000, 35000], engine: "2.0L Flat-4", fuelType: "Gasoline" },
+  // Mazda
+  { brand: "Mazda", model: "CX-5", vehicleType: "SUV", trims: ["S", "S Select", "S Preferred", "S Carbon Edition", "S Premium", "Turbo"], yearRange: [2019, 2025], priceRange: [26000, 40000], engine: "2.5L 4-Cylinder", fuelType: "Gasoline" },
+  { brand: "Mazda", model: "Mazda3", vehicleType: "Sedan", trims: ["S", "S Select", "S Preferred", "S Carbon Edition", "S Premium", "Turbo"], yearRange: [2019, 2025], priceRange: [22000, 34000], engine: "2.5L 4-Cylinder", fuelType: "Gasoline" },
+  // Lexus
+  { brand: "Lexus", model: "RX", vehicleType: "SUV", trims: ["RX 350", "RX 350 F Sport", "RX 350h", "RX 500h F Sport"], yearRange: [2020, 2025], priceRange: [46000, 68000], engine: "2.4L Turbo", fuelType: "Gasoline" },
+  { brand: "Lexus", model: "ES", vehicleType: "Sedan", trims: ["ES 250", "ES 350", "ES 350 F Sport", "ES 300h"], yearRange: [2019, 2025], priceRange: [41000, 52000], engine: "3.5L V6", fuelType: "Gasoline" },
+  // Audi
+  { brand: "Audi", model: "A4", vehicleType: "Sedan", trims: ["Premium", "Premium Plus", "Prestige", "S4 Premium Plus", "S4 Prestige"], yearRange: [2019, 2025], priceRange: [36000, 58000], engine: "2.0L Turbo", fuelType: "Gasoline" },
+  { brand: "Audi", model: "Q5", vehicleType: "SUV", trims: ["Premium", "Premium Plus", "Prestige", "SQ5 Premium Plus", "SQ5 Prestige"], yearRange: [2019, 2025], priceRange: [42000, 62000], engine: "2.0L Turbo", fuelType: "Gasoline" },
+  // Tesla
+  { brand: "Tesla", model: "Model 3", vehicleType: "Sedan", trims: ["Standard Range Plus", "Long Range", "Performance"], yearRange: [2020, 2025], priceRange: [35000, 55000], engine: "Electric Motor", fuelType: "Electric" },
+  { brand: "Tesla", model: "Model Y", vehicleType: "SUV", trims: ["Standard Range", "Long Range", "Performance"], yearRange: [2020, 2025], priceRange: [42000, 62000], engine: "Dual Electric Motor", fuelType: "Electric" },
+  // Volkswagen
+  { brand: "Volkswagen", model: "Tiguan", vehicleType: "SUV", trims: ["S", "SE", "SE R-Line", "SEL", "SEL R-Line"], yearRange: [2019, 2025], priceRange: [26000, 38000], engine: "2.0L Turbo", fuelType: "Gasoline" },
+  // Volvo
+  { brand: "Volvo", model: "XC60", vehicleType: "SUV", trims: ["B5 Core", "B5 Plus", "B6 Ultimate", "T8 Recharge"], yearRange: [2020, 2025], priceRange: [42000, 62000], engine: "2.0L Turbo", fuelType: "Gasoline" },
+  { brand: "Volvo", model: "XC90", vehicleType: "SUV", trims: ["B5 Core", "B5 Plus", "B6 Ultimate", "T8 Recharge"], yearRange: [2020, 2025], priceRange: [52000, 78000], engine: "2.0L Turbo", fuelType: "Gasoline" },
+  // Porsche
+  { brand: "Porsche", model: "Cayenne", vehicleType: "SUV", trims: ["Base", "S", "GTS", "Turbo", "Turbo GT"], yearRange: [2019, 2025], priceRange: [72000, 195000], engine: "3.0L Turbo V6", fuelType: "Gasoline" },
+  { brand: "Porsche", model: "911", vehicleType: "Coupe", trims: ["Carrera", "Carrera S", "Carrera 4S", "Turbo", "Turbo S", "GT3"], yearRange: [2019, 2025], priceRange: [105000, 250000], engine: "3.0L Twin-Turbo Flat-6", fuelType: "Gasoline" },
+  // GMC
+  { brand: "GMC", model: "Sierra 1500", vehicleType: "Truck", trims: ["Pro", "SLE", "Elevation", "SLT", "AT4", "Denali", "Denali Ultimate"], yearRange: [2019, 2025], priceRange: [36000, 75000], engine: "5.3L V8", fuelType: "Gasoline" },
+  // Land Rover
+  { brand: "Land Rover", model: "Range Rover Sport", vehicleType: "SUV", trims: ["SE", "Dynamic SE", "Autobiography", "First Edition", "SVR"], yearRange: [2020, 2025], priceRange: [72000, 135000], engine: "3.0L Turbo I6", fuelType: "Gasoline" },
+  // Dodge
+  { brand: "Dodge", model: "Challenger", vehicleType: "Coupe", trims: ["SXT", "GT", "R/T", "R/T Scat Pack", "SRT Hellcat"], yearRange: [2019, 2024], priceRange: [30000, 85000], engine: "6.4L HEMI V8", fuelType: "Gasoline" },
+  // RAM
+  { brand: "RAM", model: "1500", vehicleType: "Truck", trims: ["Tradesman", "Big Horn", "Laramie", "Rebel", "Limited", "TRX"], yearRange: [2019, 2025], priceRange: [34000, 85000], engine: "5.7L HEMI V8", fuelType: "Gasoline" },
+  // Genesis
+  { brand: "Genesis", model: "G70", vehicleType: "Sedan", trims: ["2.0T", "2.0T Sport Prestige", "3.3T Sport Prestige"], yearRange: [2020, 2025], priceRange: [38000, 55000], engine: "2.0L Turbo", fuelType: "Gasoline" },
+  // Acura
+  { brand: "Acura", model: "MDX", vehicleType: "SUV", trims: ["Base", "Technology", "A-Spec", "Advance", "Type S"], yearRange: [2020, 2025], priceRange: [48000, 72000], engine: "3.5L V6", fuelType: "Gasoline" },
+];
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+function rand(min: number, max: number): number {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function pick<T>(arr: T[]): T {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
+const colors = [
+  "Black", "White", "Silver", "Gray", "Red", "Blue", "Navy Blue",
+  "Dark Gray", "Pearl White", "Midnight Black", "Glacier White",
+  "Deep Blue", "Burgundy", "Charcoal", "Gunmetal", "Bronze",
+  "Green", "Orange", "Champagne", "Titanium",
+];
+
+const interiorColors = [
+  "Black", "Tan", "Gray", "Beige", "Brown", "Ivory", "Red",
+];
+
+const transmissions = ["Automatic", "CVT", "Manual", "8-Speed Automatic", "10-Speed Automatic", "6-Speed Manual"];
+const drivetrains = ["FWD", "RWD", "AWD", "4WD"];
+const conditions: Array<{ type: string; weight: number }> = [
+  { type: "Used", weight: 60 },
+  { type: "New", weight: 25 },
+  { type: "Certified Pre-Owned", weight: 15 },
+];
+
+function pickCondition(): string {
+  const total = conditions.reduce((sum, c) => sum + c.weight, 0);
+  let r = Math.random() * total;
+  for (const c of conditions) {
+    r -= c.weight;
+    if (r <= 0) return c.type;
+  }
+  return "Used";
+}
+
+function generateVIN(): string {
+  const chars = "ABCDEFGHJKLMNPRSTUVWXYZ0123456789";
+  let vin = "";
+  for (let i = 0; i < 17; i++) vin += chars[Math.floor(Math.random() * chars.length)];
+  return vin;
+}
+
+function generateDescription(
+  year: number, brand: string, model: string, trim: string,
+  condition: string, mileage: number | null, ext: string, trans: string
+): string {
+  const condStr = condition === "New" ? "Brand new" : condition === "Certified Pre-Owned" ? "Certified Pre-Owned" : "Pre-owned";
+  const miStr = mileage ? ` with only ${mileage.toLocaleString()} miles` : "";
+  const pieces = [
+    `${condStr} ${year} ${brand} ${model} ${trim}${miStr}.`,
+    `Finished in ${ext} with a clean interior.`,
+    `Features include ${trans} transmission, backup camera, and Bluetooth connectivity.`,
+  ];
+  if (condition === "Certified Pre-Owned") {
+    pieces.push("Includes manufacturer-backed warranty and multi-point inspection.");
+  }
+  if (condition === "New") {
+    pieces.push("Full factory warranty included. Multiple colors available.");
+  }
+  return pieces.join(" ");
+}
+
+// Unsplash photo IDs for realistic car images
+const carImageIds = [
+  "1494976388531-d1058494cdd8",
+  "1503376780353-7e6692767b70",
+  "1542362567-b07e54358753",
+  "1544636331-e26879cd4d9b",
+  "1555215695-3004980ad54e",
+  "1580273916550-e323be2ae537",
+  "1553440569-bcc63803a83d",
+  "1549399542-7e3f8b79c341",
+  "1583121274602-3e2820c69888",
+  "1552519507-da3b142c6e3b",
+  "1605559424843-9e4c228bf1c2",
+  "1616422285623-13ff0162193c",
+  "1618843479313-40f8afb4b4d8",
+  "1621007947382-bb3c3994e3fb",
+  "1619767886558-efdc259cde1a",
+  "1617531653332-bd46c24f2068",
+  "1609521263047-f8f205293f24",
+  "1614162692292-7ac56d7bc8ec",
+  "1606016159991-dfe4f2746db5",
+  "1612825173281-9a193378527e",
+  "1558618666-fcd25c85f82e",
+  "1502877338535-766e1452684a",
+  "1520340356584-f9917d1eea6f",
+  "1568605117036-5fe5e7329af2",
+  "1571607388263-1044f9ea01dd",
+  "1590362891788-8389162e68af",
+  "1533473359331-2f74fff49513",
+  "1600712242805-5f78671b24da",
+  "1541899481282-d53bffe3c35d",
+  "1570356528233-b442cf19f3f0",
+];
+
+function getCarImage(): string {
+  const id = pick(carImageIds);
+  return `https://images.unsplash.com/photo-${id}?w=640&h=400&fit=crop&auto=format`;
+}
+
+// ── Main Seed ────────────────────────────────────────────────────────────────
+
 async function main() {
+  console.log("Clearing existing data...");
+  await prisma.scrapeLog.deleteMany();
+  await prisma.car.deleteMany();
+  await prisma.dealer.deleteMany();
+
   console.log("Seeding dealers...");
+  const createdDealers: Array<{ id: string; name: string; website: string }> = [];
 
   for (const dealer of dealers) {
-    await prisma.dealer.upsert({
-      where: { id: dealer.name.toLowerCase().replace(/[^a-z0-9]+/g, "-") },
-      update: {
-        name: dealer.name,
-        website: dealer.website,
-        category: dealer.category,
-        scrapeType: dealer.scrapeType,
-        scrapable: dealer.scrapable ?? true,
-      },
-      create: {
+    const d = await prisma.dealer.create({
+      data: {
         id: dealer.name.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
         name: dealer.name,
         website: dealer.website,
@@ -88,9 +292,91 @@ async function main() {
         scrapable: dealer.scrapable ?? true,
       },
     });
+    createdDealers.push(d);
+  }
+  console.log(`Seeded ${createdDealers.length} dealers.`);
+
+  // Only use scrapable dealers for car listings
+  const activeDealers = createdDealers.filter((_, i) => dealers[i].scrapable !== false);
+
+  console.log("Seeding car inventory...");
+  let carCount = 0;
+
+  for (const template of carTemplates) {
+    // Generate 3-8 listings per template across different dealers
+    const numListings = rand(3, 8);
+
+    for (let i = 0; i < numListings; i++) {
+      const dealer = pick(activeDealers);
+      const trim = pick(template.trims);
+      const year = rand(template.yearRange[0], template.yearRange[1]);
+      const condition = pickCondition();
+
+      // Price varies by year, condition, trim
+      const ageFactor = 1 - (template.yearRange[1] - year) * 0.08;
+      const condFactor = condition === "New" ? 1.1 : condition === "Certified Pre-Owned" ? 0.95 : 0.85;
+      const trimIndex = template.trims.indexOf(trim);
+      const trimFactor = 1 + (trimIndex / template.trims.length) * 0.3;
+      const basePrice = template.priceRange[0] + Math.random() * (template.priceRange[1] - template.priceRange[0]);
+      const price = Math.round(basePrice * ageFactor * condFactor * trimFactor / 100) * 100;
+
+      // Mileage: new cars have very low, used depends on age
+      let mileage: number | null = null;
+      if (condition === "New") {
+        mileage = rand(5, 250);
+      } else {
+        const yearsOld = Math.max(0, 2025 - year);
+        mileage = rand(yearsOld * 8000, yearsOld * 15000 + 5000);
+      }
+
+      const extColor = pick(colors);
+      const intColor = pick(interiorColors);
+      const trans = template.model === "Civic" && trim === "Si" ? "6-Speed Manual"
+        : template.model === "Civic" && trim === "Type R" ? "6-Speed Manual"
+        : template.model === "Mustang" && Math.random() > 0.5 ? "6-Speed Manual"
+        : template.model === "Camaro" && Math.random() > 0.5 ? "6-Speed Manual"
+        : template.model === "Challenger" && Math.random() > 0.5 ? "6-Speed Manual"
+        : pick(["Automatic", "Automatic", "Automatic", "CVT", "8-Speed Automatic", "10-Speed Automatic"]);
+      const dt = template.vehicleType === "Truck" ? pick(["4WD", "4WD", "RWD"])
+        : template.brand === "Subaru" ? "AWD"
+        : template.brand === "Audi" ? pick(["AWD", "AWD", "FWD"])
+        : template.brand === "BMW" ? pick(["RWD", "AWD"])
+        : pick(drivetrains);
+
+      const desc = generateDescription(year, template.brand, template.model, trim, condition, mileage, extColor, trans);
+      const slug = `${year}-${template.brand}-${template.model}-${trim}`.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+      const listingUrl = `${dealer.website}/inventory/${slug}-${rand(10000, 99999)}`;
+
+      await prisma.car.create({
+        data: {
+          dealerId: dealer.id,
+          externalId: `${dealer.id}-${slug}-${carCount}`,
+          listingUrl,
+          brand: template.brand,
+          model: template.model,
+          year,
+          trim,
+          price,
+          mileage,
+          condition,
+          vehicleType: template.vehicleType,
+          exteriorColor: extColor,
+          interiorColor: intColor,
+          transmission: trans,
+          fuelType: template.fuelType || "Gasoline",
+          drivetrain: dt,
+          engine: template.engine,
+          vin: generateVIN(),
+          imageUrl: getCarImage(),
+          description: desc,
+          isActive: true,
+        },
+      });
+      carCount++;
+    }
   }
 
-  console.log(`Seeded ${dealers.length} dealers.`);
+  console.log(`Seeded ${carCount} car listings across ${activeDealers.length} active dealers.`);
 }
 
 main()
