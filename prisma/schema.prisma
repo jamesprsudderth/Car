@@ -1,0 +1,83 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Dealer {
+  id         String      @id @default(cuid())
+  name       String
+  website    String
+  category   String
+  scrapable  Boolean     @default(true)
+  scrapeUrl  String?
+  scrapeType String?
+  lastScraped DateTime?
+  isActive   Boolean     @default(true)
+  cars       Car[]
+  scrapeLogs ScrapeLog[]
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+}
+
+model Car {
+  id            String   @id @default(cuid())
+  dealerId      String
+  dealer        Dealer   @relation(fields: [dealerId], references: [id])
+  externalId    String?
+  listingUrl    String
+
+  brand         String
+  model         String
+  year          Int
+  trim          String?
+
+  price         Int?
+  mileage       Int?
+  condition     String
+  vehicleType   String
+  exteriorColor String?
+  interiorColor String?
+  transmission  String?
+  fuelType      String?
+  drivetrain    String?
+  engine        String?
+  vin           String?
+
+  imageUrl      String?
+  imageUrls     String[]
+  description   String?
+
+  isActive      Boolean  @default(true)
+  firstSeen     DateTime @default(now())
+  lastSeen      DateTime @default(now())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([dealerId, externalId])
+  @@index([brand])
+  @@index([price])
+  @@index([year])
+  @@index([mileage])
+  @@index([condition])
+  @@index([vehicleType])
+  @@index([isActive])
+}
+
+model ScrapeLog {
+  id           String    @id @default(cuid())
+  dealerId     String
+  dealer       Dealer    @relation(fields: [dealerId], references: [id])
+  status       String
+  carsFound    Int       @default(0)
+  carsAdded    Int       @default(0)
+  carsUpdated  Int       @default(0)
+  carsRemoved  Int       @default(0)
+  errorMessage String?
+  duration     Int?
+  startedAt    DateTime  @default(now())
+  completedAt  DateTime?
+}
