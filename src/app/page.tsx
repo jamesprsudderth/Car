@@ -4,9 +4,7 @@ import { Suspense, useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   Search,
-  Filter,
   Car,
-  ChevronDown,
   ExternalLink,
   X,
   ChevronLeft,
@@ -15,6 +13,10 @@ import {
   Fuel,
   Settings2,
   MapPin,
+  LayoutGrid,
+  List,
+  RotateCcw,
+  Eye,
 } from "lucide-react";
 
 // ── Types ───────────────────────────────────────────────────────────────────
@@ -84,42 +86,35 @@ function formatMileage(mileage: number): string {
   return mileage.toLocaleString() + " mi";
 }
 
-function conditionStyle(condition: string): string {
+function conditionColor(condition: string): string {
   switch (condition.toLowerCase()) {
     case "new":
-      return "bg-emerald-500/15 text-emerald-400 border-emerald-500/20";
+      return "bg-green-100 text-green-700 border-green-200";
     case "used":
-      return "bg-amber-500/15 text-amber-400 border-amber-500/20";
+      return "bg-amber-100 text-amber-700 border-amber-200";
     case "cpo":
     case "certified pre-owned":
-      return "bg-blue-500/15 text-blue-400 border-blue-500/20";
+      return "bg-blue-100 text-blue-700 border-blue-200";
     default:
-      return "bg-text-muted/15 text-text-muted border-text-muted/20";
+      return "bg-gray-100 text-gray-600 border-gray-200";
   }
 }
 
-// ── Skeleton Components ─────────────────────────────────────────────────────
+// ── Skeleton ────────────────────────────────────────────────────────────────
 
 function CardSkeleton() {
   return (
-    <div className="bg-surface rounded-xl border border-border overflow-hidden animate-pulse">
-      <div className="aspect-[16/10] bg-border" />
+    <div className="bg-white rounded-xl border border-border overflow-hidden animate-pulse">
+      <div className="aspect-[16/10] bg-gray-100" />
       <div className="p-4 space-y-3">
-        <div className="flex items-center gap-2">
-          <div className="h-5 w-14 bg-border rounded-full" />
-          <div className="h-4 w-20 bg-border rounded" />
-        </div>
-        <div className="h-5 w-3/4 bg-border rounded" />
+        <div className="h-4 w-2/3 bg-gray-100 rounded" />
         <div className="flex gap-2">
-          <div className="h-6 w-16 bg-border rounded-md" />
-          <div className="h-6 w-16 bg-border rounded-md" />
-          <div className="h-6 w-16 bg-border rounded-md" />
+          <div className="h-5 w-14 bg-gray-100 rounded" />
+          <div className="h-5 w-14 bg-gray-100 rounded" />
         </div>
-        <div className="h-4 w-full bg-border rounded" />
-        <div className="h-4 w-2/3 bg-border rounded" />
         <div className="flex items-center justify-between pt-2">
-          <div className="h-6 w-24 bg-border rounded" />
-          <div className="h-9 w-32 bg-border rounded-lg" />
+          <div className="h-6 w-20 bg-gray-100 rounded" />
+          <div className="h-8 w-24 bg-gray-100 rounded-lg" />
         </div>
       </div>
     </div>
@@ -128,7 +123,7 @@ function CardSkeleton() {
 
 function ResultsGridSkeleton() {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
       {Array.from({ length: 12 }).map((_, i) => (
         <CardSkeleton key={i} />
       ))}
@@ -140,9 +135,9 @@ function ResultsGridSkeleton() {
 
 function CarCard({ car }: { car: CarListing }) {
   return (
-    <div className="group bg-surface rounded-xl border border-border overflow-hidden hover:border-accent/30 hover:scale-[1.02] transition-all duration-300 ease-out flex flex-col">
+    <div className="group bg-white rounded-xl border border-border overflow-hidden hover:shadow-card-hover hover:border-gray-300 transition-all duration-200 flex flex-col">
       {/* Image */}
-      <div className="aspect-[16/10] relative overflow-hidden bg-gradient-to-br from-border to-bg">
+      <div className="aspect-[16/10] relative overflow-hidden bg-gray-50">
         {car.imageUrl ? (
           <img
             src={car.imageUrl}
@@ -151,79 +146,60 @@ function CarCard({ car }: { car: CarListing }) {
             loading="lazy"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <Car className="w-16 h-16 text-border" />
+          <div className="w-full h-full flex items-center justify-center bg-gray-50">
+            <Car className="w-12 h-12 text-gray-200" />
           </div>
         )}
 
         {/* Condition Badge */}
         <span
-          className={`absolute top-3 left-3 text-xs font-semibold px-2.5 py-1 rounded-full border ${conditionStyle(car.condition)}`}
+          className={`absolute top-2.5 left-2.5 text-[10px] font-bold px-2 py-0.5 rounded-md border ${conditionColor(car.condition)}`}
         >
           {car.condition}
         </span>
       </div>
 
       {/* Content */}
-      <div className="p-4 flex flex-col flex-1">
-        {/* Dealer badge */}
-        <div className="flex items-center gap-1.5 mb-2">
-          <MapPin className="w-3 h-3 text-text-muted" />
-          <span className="text-xs text-text-muted font-medium truncate">
-            {car.dealer.name}
-          </span>
-        </div>
-
+      <div className="p-3.5 flex flex-col flex-1">
         {/* Title */}
-        <h3 className="text-text font-semibold text-sm leading-snug mb-2 line-clamp-1">
+        <h3 className="text-text font-semibold text-sm leading-snug mb-1.5 line-clamp-1">
           {car.year} {car.brand} {car.model}
           {car.trim ? ` ${car.trim}` : ""}
         </h3>
 
         {/* Spec Tags */}
-        <div className="flex flex-wrap gap-1.5 mb-3">
+        <div className="flex flex-wrap gap-1 mb-2.5">
           {car.mileage != null && (
-            <span className="inline-flex items-center gap-1 text-xs text-text-muted bg-bg px-2 py-1 rounded-md">
+            <span className="inline-flex items-center gap-1 text-[11px] text-text-secondary bg-gray-50 px-1.5 py-0.5 rounded">
               <Gauge className="w-3 h-3" />
               {formatMileage(car.mileage)}
             </span>
           )}
           {car.transmission && (
-            <span className="inline-flex items-center gap-1 text-xs text-text-muted bg-bg px-2 py-1 rounded-md">
+            <span className="inline-flex items-center gap-1 text-[11px] text-text-secondary bg-gray-50 px-1.5 py-0.5 rounded">
               <Settings2 className="w-3 h-3" />
               {car.transmission}
             </span>
           )}
           {car.fuelType && (
-            <span className="inline-flex items-center gap-1 text-xs text-text-muted bg-bg px-2 py-1 rounded-md">
+            <span className="inline-flex items-center gap-1 text-[11px] text-text-secondary bg-gray-50 px-1.5 py-0.5 rounded">
               <Fuel className="w-3 h-3" />
               {car.fuelType}
             </span>
           )}
-          {car.drivetrain && (
-            <span className="inline-flex items-center gap-1 text-xs text-text-muted bg-bg px-2 py-1 rounded-md">
-              {car.drivetrain}
-            </span>
-          )}
         </div>
 
-        {/* Description */}
-        {car.description && (
-          <p className="text-xs text-text-muted leading-relaxed mb-3 line-clamp-2 flex-1">
-            {car.description}
-          </p>
-        )}
-        {!car.description && <div className="flex-1" />}
+        <div className="mt-auto" />
 
         {/* Price + CTA */}
-        <div className="flex items-center justify-between pt-3 border-t border-border mt-auto">
+        <div className="flex items-center justify-between pt-2.5 border-t border-border-light">
           <div>
             {car.price != null ? (
-              <span className="text-lg font-bold text-text">
+              <span className="text-lg font-bold text-accent">
                 {formatPrice(car.price)}
               </span>
             ) : (
-              <span className="text-sm text-text-muted italic">
+              <span className="text-xs text-text-muted italic">
                 Contact for Price
               </span>
             )}
@@ -232,13 +208,46 @@ function CarCard({ car }: { car: CarListing }) {
             href={car.listingUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 bg-accent hover:bg-accent-hover text-white text-xs font-semibold px-3.5 py-2 rounded-lg transition-colors duration-200"
+            className="inline-flex items-center gap-1 text-accent hover:text-accent-hover text-xs font-semibold transition-colors"
           >
-            View at {car.dealer.name.split(" ")[0]}
-            <ExternalLink className="w-3 h-3" />
+            <Eye className="w-3.5 h-3.5" />
+            View Details
+          </a>
+        </div>
+
+        {/* Dealer */}
+        <div className="flex items-center gap-1.5 mt-2 pt-2 border-t border-border-light">
+          <MapPin className="w-3 h-3 text-text-muted" />
+          <span className="text-[11px] text-text-muted truncate">
+            {car.dealer.name}
+          </span>
+          <a
+            href={car.listingUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="ml-auto"
+          >
+            <ExternalLink className="w-3 h-3 text-text-muted hover:text-accent transition-colors" />
           </a>
         </div>
       </div>
+    </div>
+  );
+}
+
+// ── Sidebar Filter Section ──────────────────────────────────────────────────
+
+function FilterSection({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="sidebar-section">
+      <span className="sidebar-label">{label}</span>
+      {children}
     </div>
   );
 }
@@ -247,7 +256,13 @@ function CarCard({ car }: { car: CarListing }) {
 
 export default function HomePage() {
   return (
-    <Suspense fallback={<ResultsGridSkeleton />}>
+    <Suspense
+      fallback={
+        <div className="max-w-[1400px] mx-auto px-4 py-6">
+          <ResultsGridSkeleton />
+        </div>
+      }
+    >
       <HomePageContent />
     </Suspense>
   );
@@ -257,12 +272,11 @@ function HomePageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  // State
   const [data, setData] = useState<CarsResponse | null>(null);
   const [stats, setStats] = useState<StatsData | null>(null);
   const [dealers, setDealers] = useState<DealerListItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
   // Filter state from URL
   const brand = searchParams.get("brand") || "";
@@ -278,21 +292,11 @@ function HomePageContent() {
   const sort = searchParams.get("sort") || "newest";
   const page = parseInt(searchParams.get("page") || "1", 10);
 
-  // Count active filters
   const activeFilterCount = [
-    brand,
-    vehicleType,
-    condition,
-    dealer,
-    search,
-    minPrice,
-    maxPrice,
-    yearFrom,
-    yearTo,
-    maxMileage,
+    brand, vehicleType, condition, dealer, search,
+    minPrice, maxPrice, yearFrom, yearTo, maxMileage,
   ].filter(Boolean).length;
 
-  // URL update helper
   const updateParams = useCallback(
     (updates: Record<string, string>) => {
       const params = new URLSearchParams(searchParams.toString());
@@ -303,7 +307,6 @@ function HomePageContent() {
           params.delete(key);
         }
       }
-      // Reset to page 1 when filters change (unless page itself is being set)
       if (!("page" in updates)) {
         params.delete("page");
       }
@@ -319,7 +322,6 @@ function HomePageContent() {
   // Fetch cars
   useEffect(() => {
     const controller = new AbortController();
-
     async function fetchCars() {
       setLoading(true);
       try {
@@ -351,25 +353,11 @@ function HomePageContent() {
         setLoading(false);
       }
     }
-
     fetchCars();
     return () => controller.abort();
-  }, [
-    brand,
-    vehicleType,
-    condition,
-    dealer,
-    search,
-    minPrice,
-    maxPrice,
-    yearFrom,
-    yearTo,
-    maxMileage,
-    sort,
-    page,
-  ]);
+  }, [brand, vehicleType, condition, dealer, search, minPrice, maxPrice, yearFrom, yearTo, maxMileage, sort, page]);
 
-  // Fetch stats + dealer list on mount
+  // Fetch stats + dealer list
   useEffect(() => {
     async function fetchMeta() {
       try {
@@ -394,7 +382,6 @@ function HomePageContent() {
     fetchMeta();
   }, []);
 
-  // Year range for dropdowns
   const currentYear = new Date().getFullYear() + 1;
   const yearOptions: number[] = [];
   const minYear = data?.filters?.yearRange?.min || 2000;
@@ -403,359 +390,436 @@ function HomePageContent() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      {/* ── Hero ───────────────────────────────────────────────────── */}
-      <section className="text-center mb-10">
-        <h1 className="font-display text-5xl sm:text-6xl lg:text-7xl text-text mb-3 tracking-tight">
-          AutoFind NYC
-        </h1>
-        <p className="text-text-muted text-lg mb-5 max-w-xl mx-auto">
-          Search car inventory across NYC dealers in one place
-        </p>
-        {stats && (
-          <div className="flex items-center justify-center gap-6 text-sm">
-            <div className="flex items-center gap-2">
-              <span className="inline-block w-2 h-2 rounded-full bg-accent" />
-              <span className="text-text font-semibold">
-                {stats.totalActiveCars.toLocaleString()}
-              </span>
-              <span className="text-text-muted">cars</span>
-            </div>
-            <div className="w-px h-4 bg-border" />
-            <div className="flex items-center gap-2">
-              <span className="inline-block w-2 h-2 rounded-full bg-emerald-400" />
-              <span className="text-text font-semibold">
-                {stats.totalActiveDealers}
-              </span>
-              <span className="text-text-muted">dealers</span>
-            </div>
-          </div>
-        )}
-      </section>
-
-      {/* ── Search Bar ─────────────────────────────────────────────── */}
-      <section className="mb-6">
-        <div className="flex gap-3">
+    <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-5">
+      {/* ── Top Search Bar ──────────────────────────────────────────── */}
+      <div className="mb-5">
+        <div className="flex gap-3 items-center">
           <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
             <input
               type="text"
-              placeholder="Search by brand, model, trim..."
+              placeholder="Make, Model, or Keyword..."
               value={search}
               onChange={(e) => updateParams({ search: e.target.value })}
-              className="filter-input w-full pl-10 pr-4 py-2.5"
+              className="filter-input w-full pl-10 pr-10 py-3 text-sm rounded-xl border-border bg-white shadow-card"
             />
             {search && (
               <button
                 onClick={() => updateParams({ search: "" })}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text transition-colors"
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-text-muted hover:text-text"
               >
                 <X className="w-4 h-4" />
               </button>
             )}
           </div>
           <button
-            onClick={() => setFiltersOpen(!filtersOpen)}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border text-sm font-medium transition-all duration-200
-              ${
-                filtersOpen || activeFilterCount > 0
-                  ? "bg-accent/10 border-accent/30 text-accent"
-                  : "bg-surface border-border text-text-muted hover:text-text hover:border-text-muted/30"
-              }`}
+            onClick={() => {/* search triggers automatically */}}
+            className="btn-primary py-3 px-6 rounded-xl shadow-card"
           >
-            <Filter className="w-4 h-4" />
-            <span className="hidden sm:inline">Filters</span>
-            {activeFilterCount > 0 && (
-              <span className="bg-accent text-white text-xs w-5 h-5 rounded-full flex items-center justify-center font-bold">
-                {activeFilterCount}
-              </span>
-            )}
-            <ChevronDown
-              className={`w-4 h-4 transition-transform duration-200 ${filtersOpen ? "rotate-180" : ""}`}
-            />
+            <Search className="w-4 h-4" />
+            Search
           </button>
         </div>
-      </section>
 
-      {/* ── Collapsible Filters ────────────────────────────────────── */}
-      <div
-        className={`overflow-hidden transition-all duration-300 ease-in-out ${
-          filtersOpen ? "max-h-[500px] opacity-100 mb-6" : "max-h-0 opacity-0"
-        }`}
-      >
-        <div className="bg-surface border border-border rounded-xl p-5">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* Brand */}
-            <div>
-              <label className="block text-xs text-text-muted mb-1.5 font-medium">
-                Brand
-              </label>
+        {/* Stats bar */}
+        {stats && (
+          <div className="flex items-center gap-4 mt-3 text-xs text-text-muted">
+            <span>
+              <span className="font-semibold text-text">{stats.totalActiveCars.toLocaleString()}</span> vehicles available
+            </span>
+            <span className="text-border">|</span>
+            <span>
+              <span className="font-semibold text-text">{stats.totalActiveDealers}</span> dealers
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* ── Main Layout: Sidebar + Content ──────────────────────────── */}
+      <div className="flex gap-6">
+        {/* ── Left Sidebar Filters ──────────────────────────────────── */}
+        <aside className="hidden lg:block w-64 flex-shrink-0">
+          <div className="bg-white rounded-xl border border-border p-4 shadow-card sticky top-20">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-sm font-bold text-text">Filters</h2>
+              {activeFilterCount > 0 && (
+                <button
+                  onClick={clearAllFilters}
+                  className="flex items-center gap-1 text-[11px] text-accent hover:text-accent-hover font-medium transition-colors"
+                >
+                  <RotateCcw className="w-3 h-3" />
+                  Reset
+                </button>
+              )}
+            </div>
+
+            {/* Make / Brand */}
+            <FilterSection label="Make">
               <select
                 value={brand}
                 onChange={(e) => updateParams({ brand: e.target.value })}
-                className="filter-select w-full"
+                className="filter-select w-full text-sm"
               >
-                <option value="">All Brands</option>
+                <option value="">All Makes</option>
                 {data?.filters?.brands?.map((b) => (
-                  <option key={b} value={b}>
-                    {b}
-                  </option>
+                  <option key={b} value={b}>{b}</option>
                 ))}
               </select>
-            </div>
+            </FilterSection>
 
-            {/* Vehicle Type */}
-            <div>
-              <label className="block text-xs text-text-muted mb-1.5 font-medium">
-                Vehicle Type
-              </label>
+            {/* Body Type */}
+            <FilterSection label="Body Type">
               <select
                 value={vehicleType}
                 onChange={(e) => updateParams({ vehicleType: e.target.value })}
-                className="filter-select w-full"
+                className="filter-select w-full text-sm"
               >
                 <option value="">All Types</option>
                 {data?.filters?.vehicleTypes?.map((t) => (
-                  <option key={t} value={t}>
-                    {t}
-                  </option>
+                  <option key={t} value={t}>{t}</option>
                 ))}
               </select>
-            </div>
+            </FilterSection>
+
+            {/* Year */}
+            <FilterSection label="Year">
+              <div className="flex gap-2">
+                <select
+                  value={yearFrom}
+                  onChange={(e) => updateParams({ yearFrom: e.target.value })}
+                  className="filter-select w-full text-sm"
+                >
+                  <option value="">From</option>
+                  {yearOptions.map((y) => (
+                    <option key={y} value={y}>{y}</option>
+                  ))}
+                </select>
+                <select
+                  value={yearTo}
+                  onChange={(e) => updateParams({ yearTo: e.target.value })}
+                  className="filter-select w-full text-sm"
+                >
+                  <option value="">To</option>
+                  {yearOptions.map((y) => (
+                    <option key={y} value={y}>{y}</option>
+                  ))}
+                </select>
+              </div>
+            </FilterSection>
+
+            {/* Price */}
+            <FilterSection label="Price">
+              <div className="flex gap-2">
+                <input
+                  type="number"
+                  placeholder="Min"
+                  value={minPrice}
+                  onChange={(e) => updateParams({ minPrice: e.target.value })}
+                  className="filter-input w-full text-sm"
+                />
+                <input
+                  type="number"
+                  placeholder="Max"
+                  value={maxPrice}
+                  onChange={(e) => updateParams({ maxPrice: e.target.value })}
+                  className="filter-input w-full text-sm"
+                />
+              </div>
+            </FilterSection>
+
+            {/* Mileage */}
+            <FilterSection label="Mileage">
+              <input
+                type="number"
+                placeholder="Max mileage"
+                value={maxMileage}
+                onChange={(e) => updateParams({ maxMileage: e.target.value })}
+                className="filter-input w-full text-sm"
+              />
+            </FilterSection>
 
             {/* Condition */}
-            <div>
-              <label className="block text-xs text-text-muted mb-1.5 font-medium">
-                Condition
-              </label>
-              <select
-                value={condition}
-                onChange={(e) => updateParams({ condition: e.target.value })}
-                className="filter-select w-full"
-              >
-                <option value="">Any Condition</option>
-                <option value="New">New</option>
-                <option value="Used">Used</option>
-                <option value="CPO">Certified Pre-Owned</option>
-              </select>
-            </div>
+            <FilterSection label="Condition">
+              <div className="space-y-1.5">
+                {["New", "Used", "Certified Pre-Owned"].map((c) => (
+                  <label key={c} className="flex items-center gap-2 cursor-pointer group">
+                    <input
+                      type="radio"
+                      name="condition"
+                      checked={condition === c}
+                      onChange={() => updateParams({ condition: condition === c ? "" : c })}
+                      className="w-3.5 h-3.5 text-accent border-border focus:ring-accent"
+                    />
+                    <span className="text-sm text-text-secondary group-hover:text-text transition-colors">
+                      {c}
+                    </span>
+                  </label>
+                ))}
+                {condition && (
+                  <button
+                    onClick={() => updateParams({ condition: "" })}
+                    className="text-[11px] text-accent hover:text-accent-hover mt-1"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+            </FilterSection>
 
             {/* Dealer */}
-            <div>
-              <label className="block text-xs text-text-muted mb-1.5 font-medium">
-                Dealer
-              </label>
+            <div className="pb-2">
+              <span className="sidebar-label">Dealer</span>
               <select
                 value={dealer}
                 onChange={(e) => updateParams({ dealer: e.target.value })}
-                className="filter-select w-full"
+                className="filter-select w-full text-sm"
               >
                 <option value="">All Dealers</option>
                 {dealers.map((d) => (
-                  <option key={d.id} value={d.id}>
-                    {d.name}
-                  </option>
+                  <option key={d.id} value={d.id}>{d.name}</option>
                 ))}
               </select>
             </div>
+          </div>
+        </aside>
 
-            {/* Price Range */}
-            <div>
-              <label className="block text-xs text-text-muted mb-1.5 font-medium">
-                Min Price
-              </label>
-              <input
-                type="number"
-                placeholder="No min"
-                value={minPrice}
-                onChange={(e) => updateParams({ minPrice: e.target.value })}
-                className="filter-input w-full"
-              />
-            </div>
-            <div>
-              <label className="block text-xs text-text-muted mb-1.5 font-medium">
-                Max Price
-              </label>
-              <input
-                type="number"
-                placeholder="No max"
-                value={maxPrice}
-                onChange={(e) => updateParams({ maxPrice: e.target.value })}
-                className="filter-input w-full"
-              />
-            </div>
+        {/* ── Main Content ──────────────────────────────────────────── */}
+        <div className="flex-1 min-w-0">
+          {/* Sort bar */}
+          <div className="flex items-center justify-between mb-4 bg-white rounded-xl border border-border px-4 py-3 shadow-card">
+            <p className="text-sm text-text-secondary">
+              {loading ? (
+                <span className="inline-block w-28 h-4 bg-gray-100 rounded animate-pulse" />
+              ) : (
+                <>
+                  Found{" "}
+                  <span className="font-bold text-text">
+                    {data?.total.toLocaleString() ?? 0}
+                  </span>{" "}
+                  results
+                </>
+              )}
+            </p>
 
-            {/* Year Range */}
-            <div>
-              <label className="block text-xs text-text-muted mb-1.5 font-medium">
-                Year From
-              </label>
+            <div className="flex items-center gap-3">
+              {/* View toggle */}
+              <div className="hidden sm:flex items-center border border-border rounded-lg overflow-hidden">
+                <button
+                  onClick={() => setViewMode("grid")}
+                  className={`p-2 transition-colors ${viewMode === "grid" ? "bg-accent text-white" : "text-text-muted hover:text-text bg-white"}`}
+                >
+                  <LayoutGrid className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => setViewMode("list")}
+                  className={`p-2 transition-colors ${viewMode === "list" ? "bg-accent text-white" : "text-text-muted hover:text-text bg-white"}`}
+                >
+                  <List className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Sort */}
               <select
-                value={yearFrom}
-                onChange={(e) => updateParams({ yearFrom: e.target.value })}
-                className="filter-select w-full"
+                value={sort}
+                onChange={(e) => updateParams({ sort: e.target.value })}
+                className="filter-select text-sm"
               >
-                <option value="">Any</option>
-                {yearOptions.map((y) => (
-                  <option key={y} value={y}>
-                    {y}
-                  </option>
-                ))}
+                <option value="newest">Recently Added</option>
+                <option value="price_asc">Price: Low → High</option>
+                <option value="price_desc">Price: High → Low</option>
+                <option value="year_desc">Year: Newest</option>
+                <option value="year_asc">Year: Oldest</option>
+                <option value="mileage_asc">Mileage: Lowest</option>
               </select>
-            </div>
-            <div>
-              <label className="block text-xs text-text-muted mb-1.5 font-medium">
-                Year To
-              </label>
-              <select
-                value={yearTo}
-                onChange={(e) => updateParams({ yearTo: e.target.value })}
-                className="filter-select w-full"
-              >
-                <option value="">Any</option>
-                {yearOptions.map((y) => (
-                  <option key={y} value={y}>
-                    {y}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Max Mileage */}
-            <div>
-              <label className="block text-xs text-text-muted mb-1.5 font-medium">
-                Max Mileage
-              </label>
-              <input
-                type="number"
-                placeholder="No limit"
-                value={maxMileage}
-                onChange={(e) => updateParams({ maxMileage: e.target.value })}
-                className="filter-input w-full"
-              />
             </div>
           </div>
 
-          {/* Clear Filters */}
-          {activeFilterCount > 0 && (
-            <div className="mt-4 pt-4 border-t border-border flex justify-end">
-              <button
-                onClick={clearAllFilters}
-                className="flex items-center gap-1.5 text-sm text-text-muted hover:text-accent transition-colors"
-              >
-                <X className="w-3.5 h-3.5" />
-                Clear all filters
-              </button>
+          {/* Mobile Filters (shown on small screens) */}
+          <div className="lg:hidden mb-4 grid grid-cols-2 sm:grid-cols-3 gap-2">
+            <select value={brand} onChange={(e) => updateParams({ brand: e.target.value })} className="filter-select text-sm">
+              <option value="">Make</option>
+              {data?.filters?.brands?.map((b) => <option key={b} value={b}>{b}</option>)}
+            </select>
+            <select value={vehicleType} onChange={(e) => updateParams({ vehicleType: e.target.value })} className="filter-select text-sm">
+              <option value="">Type</option>
+              {data?.filters?.vehicleTypes?.map((t) => <option key={t} value={t}>{t}</option>)}
+            </select>
+            <select value={condition} onChange={(e) => updateParams({ condition: e.target.value })} className="filter-select text-sm">
+              <option value="">Condition</option>
+              <option value="New">New</option>
+              <option value="Used">Used</option>
+              <option value="Certified Pre-Owned">CPO</option>
+            </select>
+          </div>
+
+          {/* Results Grid */}
+          {loading ? (
+            <ResultsGridSkeleton />
+          ) : data && data.cars.length > 0 ? (
+            <div
+              className={
+                viewMode === "grid"
+                  ? "grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4"
+                  : "flex flex-col gap-3"
+              }
+            >
+              {data.cars.map((car) =>
+                viewMode === "grid" ? (
+                  <CarCard key={car.id} car={car} />
+                ) : (
+                  <ListCard key={car.id} car={car} />
+                )
+              )}
             </div>
+          ) : (
+            <div className="text-center py-20 bg-white rounded-xl border border-border">
+              <Car className="w-16 h-16 text-gray-200 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-text mb-2">
+                No cars found
+              </h3>
+              <p className="text-text-secondary text-sm mb-4">
+                Try adjusting your filters or search terms
+              </p>
+              {activeFilterCount > 0 && (
+                <button
+                  onClick={clearAllFilters}
+                  className="btn-primary text-sm"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                  Reset Filters
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* Pagination */}
+          {data && data.totalPages > 1 && (
+            <nav className="flex items-center justify-center gap-2 mt-8">
+              <button
+                onClick={() => updateParams({ page: (page - 1).toString() })}
+                disabled={page <= 1}
+                className="flex items-center gap-1 px-3 py-2 rounded-lg border border-border bg-white text-sm font-medium
+                           text-text-secondary hover:text-text hover:border-gray-300 transition-all
+                           disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                <ChevronLeft className="w-4 h-4" />
+                Prev
+              </button>
+
+              {generatePageNumbers(page, data.totalPages).map((p, idx) =>
+                p === -1 ? (
+                  <span key={`dots-${idx}`} className="px-1 text-text-muted">
+                    ...
+                  </span>
+                ) : (
+                  <button
+                    key={p}
+                    onClick={() => updateParams({ page: p.toString() })}
+                    className={`w-9 h-9 rounded-lg text-sm font-medium transition-all
+                      ${p === page
+                        ? "bg-accent text-white shadow-sm"
+                        : "bg-white border border-border text-text-secondary hover:border-gray-300"
+                      }`}
+                  >
+                    {p}
+                  </button>
+                )
+              )}
+
+              <button
+                onClick={() => updateParams({ page: (page + 1).toString() })}
+                disabled={page >= data.totalPages}
+                className="flex items-center gap-1 px-3 py-2 rounded-lg border border-border bg-white text-sm font-medium
+                           text-text-secondary hover:text-text hover:border-gray-300 transition-all
+                           disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                Next
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </nav>
           )}
         </div>
       </div>
+    </div>
+  );
+}
 
-      {/* ── Sort + Results Count ───────────────────────────────────── */}
-      <section className="flex items-center justify-between mb-5">
-        <p className="text-sm text-text-muted">
-          {loading ? (
-            <span className="inline-block w-32 h-4 bg-border rounded animate-pulse" />
-          ) : (
-            <>
-              <span className="text-text font-semibold">
-                {data?.total.toLocaleString() ?? 0}
-              </span>{" "}
-              results
-            </>
-          )}
-        </p>
-        <select
-          value={sort}
-          onChange={(e) => updateParams({ sort: e.target.value })}
-          className="filter-select text-sm"
+// ── List View Card ──────────────────────────────────────────────────────────
+
+function ListCard({ car }: { car: CarListing }) {
+  return (
+    <div className="flex bg-white rounded-xl border border-border overflow-hidden hover:shadow-card-hover hover:border-gray-300 transition-all duration-200">
+      {/* Image */}
+      <div className="w-48 flex-shrink-0 relative bg-gray-50">
+        {car.imageUrl ? (
+          <img
+            src={car.imageUrl}
+            alt={`${car.year} ${car.brand} ${car.model}`}
+            className="w-full h-full object-cover"
+            loading="lazy"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center min-h-[120px]">
+            <Car className="w-10 h-10 text-gray-200" />
+          </div>
+        )}
+        <span
+          className={`absolute top-2 left-2 text-[10px] font-bold px-2 py-0.5 rounded-md border ${conditionColor(car.condition)}`}
         >
-          <option value="newest">Recently Added</option>
-          <option value="price_asc">Price: Low to High</option>
-          <option value="price_desc">Price: High to Low</option>
-          <option value="year_desc">Year: Newest First</option>
-          <option value="year_asc">Year: Oldest First</option>
-          <option value="mileage_asc">Mileage: Lowest</option>
-        </select>
-      </section>
+          {car.condition}
+        </span>
+      </div>
 
-      {/* ── Results Grid ───────────────────────────────────────────── */}
-      {loading ? (
-        <ResultsGridSkeleton />
-      ) : data && data.cars.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {data.cars.map((car) => (
-            <CarCard key={car.id} car={car} />
-          ))}
-        </div>
-      ) : (
-        <div className="text-center py-20">
-          <Car className="w-16 h-16 text-border mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-text mb-2">
-            No cars found
+      {/* Content */}
+      <div className="flex-1 p-4 flex flex-col justify-between min-w-0">
+        <div>
+          <h3 className="text-text font-semibold text-sm mb-1 truncate">
+            {car.year} {car.brand} {car.model}
+            {car.trim ? ` ${car.trim}` : ""}
           </h3>
-          <p className="text-text-muted text-sm mb-4">
-            Try adjusting your filters or search terms
-          </p>
-          {activeFilterCount > 0 && (
-            <button
-              onClick={clearAllFilters}
-              className="text-accent hover:text-accent-hover text-sm font-medium transition-colors"
-            >
-              Clear all filters
-            </button>
-          )}
-        </div>
-      )}
-
-      {/* ── Pagination ─────────────────────────────────────────────── */}
-      {data && data.totalPages > 1 && (
-        <nav className="flex items-center justify-center gap-2 mt-10">
-          <button
-            onClick={() => updateParams({ page: (page - 1).toString() })}
-            disabled={page <= 1}
-            className="flex items-center gap-1 px-3 py-2 rounded-lg border border-border text-sm font-medium
-                       text-text-muted hover:text-text hover:border-text-muted/30 transition-all duration-200
-                       disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:border-border disabled:hover:text-text-muted"
-          >
-            <ChevronLeft className="w-4 h-4" />
-            Prev
-          </button>
-
-          {/* Page Numbers */}
-          {generatePageNumbers(page, data.totalPages).map((p, idx) =>
-            p === -1 ? (
-              <span key={`ellipsis-${idx}`} className="px-2 text-text-muted">
-                ...
+          <div className="flex items-center gap-1.5 mb-2">
+            <MapPin className="w-3 h-3 text-text-muted" />
+            <span className="text-[11px] text-text-muted">{car.dealer.name}</span>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {car.mileage != null && (
+              <span className="inline-flex items-center gap-1 text-[11px] text-text-secondary bg-gray-50 px-1.5 py-0.5 rounded">
+                <Gauge className="w-3 h-3" />
+                {formatMileage(car.mileage)}
               </span>
-            ) : (
-              <button
-                key={p}
-                onClick={() => updateParams({ page: p.toString() })}
-                className={`w-10 h-10 rounded-lg text-sm font-medium transition-all duration-200
-                  ${
-                    p === page
-                      ? "bg-accent text-white"
-                      : "border border-border text-text-muted hover:text-text hover:border-text-muted/30"
-                  }`}
-              >
-                {p}
-              </button>
-            )
-          )}
+            )}
+            {car.transmission && (
+              <span className="inline-flex items-center gap-1 text-[11px] text-text-secondary bg-gray-50 px-1.5 py-0.5 rounded">
+                {car.transmission}
+              </span>
+            )}
+            {car.fuelType && (
+              <span className="inline-flex items-center gap-1 text-[11px] text-text-secondary bg-gray-50 px-1.5 py-0.5 rounded">
+                {car.fuelType}
+              </span>
+            )}
+          </div>
+        </div>
 
-          <button
-            onClick={() => updateParams({ page: (page + 1).toString() })}
-            disabled={page >= data.totalPages}
-            className="flex items-center gap-1 px-3 py-2 rounded-lg border border-border text-sm font-medium
-                       text-text-muted hover:text-text hover:border-text-muted/30 transition-all duration-200
-                       disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:border-border disabled:hover:text-text-muted"
+        <div className="flex items-center justify-between mt-3">
+          {car.price != null ? (
+            <span className="text-lg font-bold text-accent">
+              {formatPrice(car.price)}
+            </span>
+          ) : (
+            <span className="text-xs text-text-muted italic">Contact for Price</span>
+          )}
+          <a
+            href={car.listingUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 text-accent hover:text-accent-hover text-xs font-semibold transition-colors"
           >
-            Next
-            <ChevronRight className="w-4 h-4" />
-          </button>
-        </nav>
-      )}
+            <Eye className="w-3.5 h-3.5" />
+            View Details
+          </a>
+        </div>
+      </div>
     </div>
   );
 }
@@ -768,26 +832,18 @@ function generatePageNumbers(current: number, total: number): number[] {
   }
 
   const pages: number[] = [];
-
-  // Always include first page
   pages.push(1);
 
-  if (current > 3) {
-    pages.push(-1); // ellipsis
-  }
+  if (current > 3) pages.push(-1);
 
-  // Pages around current
   const start = Math.max(2, current - 1);
   const end = Math.min(total - 1, current + 1);
   for (let i = start; i <= end; i++) {
     pages.push(i);
   }
 
-  if (current < total - 2) {
-    pages.push(-1); // ellipsis
-  }
+  if (current < total - 2) pages.push(-1);
 
-  // Always include last page
   pages.push(total);
 
   return pages;

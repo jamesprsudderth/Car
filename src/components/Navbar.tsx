@@ -2,51 +2,56 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Car, Users } from "lucide-react";
+import { Car, Search, Store, User } from "lucide-react";
 
 export default function Navbar() {
   const pathname = usePathname();
 
-  const links = [
-    { href: "/", label: "Search", icon: Car },
-    { href: "/dealers", label: "Dealers", icon: Users },
-  ];
-
   return (
-    <nav className="sticky top-0 z-50 bg-surface/80 backdrop-blur-xl border-b border-border">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
+    <nav className="sticky top-0 z-50 bg-white border-b border-border shadow-sm">
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-14">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2 group">
-            <div className="w-8 h-8 bg-accent rounded-lg flex items-center justify-center group-hover:bg-accent-hover transition-colors duration-200">
+          <Link href="/" className="flex items-center gap-2.5 group">
+            <div className="w-8 h-8 bg-accent rounded-lg flex items-center justify-center">
               <Car className="w-4 h-4 text-white" />
             </div>
-            <span className="font-display text-2xl text-text tracking-tight">
-              AutoFind NYC
+            <span className="font-display text-xl text-primary tracking-tight">
+              automarket<span className="text-accent">.nyc</span>
             </span>
           </Link>
 
-          {/* Nav Links */}
-          <div className="flex items-center gap-1">
-            {links.map((link) => {
-              const isActive = pathname === link.href;
-              const Icon = link.icon;
-              return (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200
-                    ${
-                      isActive
-                        ? "bg-accent/10 text-accent"
-                        : "text-text-muted hover:text-text hover:bg-white/5"
-                    }`}
-                >
-                  <Icon className="w-4 h-4" />
-                  {link.label}
-                </Link>
-              );
-            })}
+          {/* Center Nav */}
+          <div className="hidden md:flex items-center gap-1">
+            <Link
+              href="/"
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200
+                ${pathname === "/"
+                  ? "bg-accent-light text-accent"
+                  : "text-text-secondary hover:text-text hover:bg-gray-50"
+                }`}
+            >
+              <Search className="w-4 h-4" />
+              Search
+            </Link>
+            <Link
+              href="/dealers"
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200
+                ${pathname === "/dealers"
+                  ? "bg-accent-light text-accent"
+                  : "text-text-secondary hover:text-text hover:bg-gray-50"
+                }`}
+            >
+              <Store className="w-4 h-4" />
+              Dealers
+            </Link>
+          </div>
+
+          {/* Right Actions */}
+          <div className="flex items-center gap-3">
+            <button className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center text-text-secondary hover:bg-gray-200 transition-colors">
+              <User className="w-4 h-4" />
+            </button>
           </div>
         </div>
       </div>
