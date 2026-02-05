@@ -4,7 +4,15 @@ const prisma = new PrismaClient();
 
 // ── Dealers ──────────────────────────────────────────────────────────────────
 
-const dealers = [
+interface DealerDef {
+  name: string;
+  website: string;
+  category: string;
+  scrapeType: string;
+  scrapable?: boolean;
+}
+
+const dealers: DealerDef[] = [
   { name: "Major World", website: "https://majorworld.com", category: "NYC Dealership", scrapeType: "puppeteer" },
   { name: "Power Motors NYC", website: "https://www.powermotorsnyc.com", category: "NYC Dealership", scrapeType: "puppeteer" },
   { name: "Toyota of Manhattan", website: "https://www.toyotaofmanhattan.com", category: "NYC Dealership", scrapeType: "puppeteer" },
@@ -68,6 +76,40 @@ const dealers = [
   { name: "Sam's Club Auto Program", website: "https://www.samsclub.com/auto-buying-program.html", category: "Buying Program", scrapeType: "manual", scrapable: false },
 ];
 
+// ── Dealer → Brand mapping ───────────────────────────────────────────────────
+
+const dealerBrandMap: Record<string, string[]> = {
+  "Toyota of Manhattan": ["Toyota"],
+  "Toyota of Staten Island": ["Toyota"],
+  "Toyota of Brooklyn": ["Toyota"],
+  "Paragon Toyota": ["Toyota"],
+  "Honda of Manhattan": ["Honda"],
+  "Honda of Staten Island": ["Honda"],
+  "Paragon Honda": ["Honda"],
+  "BMW of Manhattan": ["BMW"],
+  "Lexus of Manhattan": ["Lexus"],
+  "Audi Manhattan": ["Audi"],
+  "Audi Brooklyn": ["Audi"],
+  "Jeep of Manhattan": ["Jeep"],
+  "City World Ford": ["Ford"],
+  "Ford Lincoln of Harlem": ["Ford", "Lincoln"],
+  "Chevrolet of Brooklyn": ["Chevrolet"],
+  "Volvo Cars Manhattan": ["Volvo"],
+  "Mini of Manhattan": ["MINI"],
+  "Nissan of Queens": ["Nissan"],
+  "Koeppel Nissan": ["Nissan"],
+  "Hyundai of Staten Island": ["Hyundai"],
+  "Koeppel Hyundai": ["Hyundai"],
+  "Subaru Brooklyn": ["Subaru"],
+  "Koeppel Subaru": ["Subaru"],
+  "Kia of Manhattan": ["Kia"],
+  "Koeppel Mazda": ["Mazda"],
+  "GMC of Staten Island": ["GMC"],
+  "Jaguar Land Rover Manhattan": ["Jaguar", "Land Rover"],
+  "Manhattan Motorcars": ["Porsche", "Mercedes-Benz"],
+  "Tesla Inventory": ["Tesla"],
+};
+
 // ── Car inventory templates ──────────────────────────────────────────────────
 
 interface CarTemplate {
@@ -79,6 +121,7 @@ interface CarTemplate {
   priceRange: [number, number];
   engine?: string;
   fuelType?: string;
+  isClassic?: boolean;
 }
 
 const carTemplates: CarTemplate[] = [
@@ -155,6 +198,7 @@ const carTemplates: CarTemplate[] = [
   { brand: "GMC", model: "Sierra 1500", vehicleType: "Truck", trims: ["Pro", "SLE", "Elevation", "SLT", "AT4", "Denali", "Denali Ultimate"], yearRange: [2019, 2025], priceRange: [36000, 75000], engine: "5.3L V8", fuelType: "Gasoline" },
   // Land Rover
   { brand: "Land Rover", model: "Range Rover Sport", vehicleType: "SUV", trims: ["SE", "Dynamic SE", "Autobiography", "First Edition", "SVR"], yearRange: [2020, 2025], priceRange: [72000, 135000], engine: "3.0L Turbo I6", fuelType: "Gasoline" },
+  { brand: "Land Rover", model: "Defender", vehicleType: "SUV", trims: ["S", "SE", "X-Dynamic SE", "X", "V8"], yearRange: [2020, 2025], priceRange: [55000, 115000], engine: "3.0L Turbo I6", fuelType: "Gasoline" },
   // Dodge
   { brand: "Dodge", model: "Challenger", vehicleType: "Coupe", trims: ["SXT", "GT", "R/T", "R/T Scat Pack", "SRT Hellcat"], yearRange: [2019, 2024], priceRange: [30000, 85000], engine: "6.4L HEMI V8", fuelType: "Gasoline" },
   // RAM
@@ -163,6 +207,21 @@ const carTemplates: CarTemplate[] = [
   { brand: "Genesis", model: "G70", vehicleType: "Sedan", trims: ["2.0T", "2.0T Sport Prestige", "3.3T Sport Prestige"], yearRange: [2020, 2025], priceRange: [38000, 55000], engine: "2.0L Turbo", fuelType: "Gasoline" },
   // Acura
   { brand: "Acura", model: "MDX", vehicleType: "SUV", trims: ["Base", "Technology", "A-Spec", "Advance", "Type S"], yearRange: [2020, 2025], priceRange: [48000, 72000], engine: "3.5L V6", fuelType: "Gasoline" },
+  // Lincoln (for Ford Lincoln of Harlem)
+  { brand: "Lincoln", model: "Nautilus", vehicleType: "SUV", trims: ["Standard", "Reserve", "Black Label"], yearRange: [2020, 2025], priceRange: [42000, 62000], engine: "2.0L Turbo", fuelType: "Gasoline" },
+  { brand: "Lincoln", model: "Aviator", vehicleType: "SUV", trims: ["Standard", "Reserve", "Black Label"], yearRange: [2020, 2025], priceRange: [52000, 78000], engine: "3.0L Twin-Turbo V6", fuelType: "Gasoline" },
+  // MINI (for Mini of Manhattan)
+  { brand: "MINI", model: "Cooper", vehicleType: "Hatchback", trims: ["Classic", "Signature", "Iconic", "S", "John Cooper Works"], yearRange: [2019, 2025], priceRange: [24000, 42000], engine: "1.5L Turbo 3-Cylinder", fuelType: "Gasoline" },
+  { brand: "MINI", model: "Countryman", vehicleType: "SUV", trims: ["Classic", "Signature", "Iconic", "S", "John Cooper Works"], yearRange: [2019, 2025], priceRange: [30000, 48000], engine: "2.0L Turbo", fuelType: "Gasoline" },
+  // Jaguar (for Jaguar Land Rover Manhattan)
+  { brand: "Jaguar", model: "F-PACE", vehicleType: "SUV", trims: ["S", "SE", "R-Dynamic SE", "SVR"], yearRange: [2019, 2025], priceRange: [50000, 85000], engine: "2.0L Turbo", fuelType: "Gasoline" },
+  { brand: "Jaguar", model: "F-TYPE", vehicleType: "Coupe", trims: ["P300", "P450", "R-Dynamic", "R"], yearRange: [2019, 2025], priceRange: [65000, 110000], engine: "5.0L Supercharged V8", fuelType: "Gasoline" },
+  // Classic / Specialty (for Hemmings, Bring a Trailer)
+  { brand: "Porsche", model: "911 Classic", vehicleType: "Coupe", trims: ["Carrera", "Targa", "Turbo"], yearRange: [1985, 2005], priceRange: [55000, 180000], engine: "3.6L Flat-6", fuelType: "Gasoline", isClassic: true },
+  { brand: "Ford", model: "Mustang Classic", vehicleType: "Coupe", trims: ["GT", "Mach 1", "Boss 302", "Shelby GT500"], yearRange: [1965, 1973], priceRange: [35000, 250000], engine: "5.0L V8", fuelType: "Gasoline", isClassic: true },
+  { brand: "Chevrolet", model: "Corvette Classic", vehicleType: "Coupe", trims: ["Stingray", "LT", "454"], yearRange: [1963, 1982], priceRange: [40000, 200000], engine: "5.7L V8", fuelType: "Gasoline", isClassic: true },
+  { brand: "Chevrolet", model: "Camaro Classic", vehicleType: "Coupe", trims: ["SS", "Z/28", "RS"], yearRange: [1967, 1973], priceRange: [45000, 175000], engine: "5.7L V8", fuelType: "Gasoline", isClassic: true },
+  { brand: "Mercedes-Benz", model: "300SL", vehicleType: "Coupe", trims: ["Gullwing", "Roadster"], yearRange: [1954, 1963], priceRange: [800000, 2000000], engine: "3.0L I6", fuelType: "Gasoline", isClassic: true },
 ];
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -186,8 +245,6 @@ const interiorColors = [
   "Black", "Tan", "Gray", "Beige", "Brown", "Ivory", "Red",
 ];
 
-const transmissions = ["Automatic", "CVT", "Manual", "8-Speed Automatic", "10-Speed Automatic", "6-Speed Manual"];
-const drivetrains = ["FWD", "RWD", "AWD", "4WD"];
 const conditions: Array<{ type: string; weight: number }> = [
   { type: "Used", weight: 60 },
   { type: "New", weight: 25 },
@@ -231,7 +288,6 @@ function generateDescription(
   return pieces.join(" ");
 }
 
-// Unsplash photo IDs for realistic car images
 const carImageIds = [
   "1494976388531-d1058494cdd8",
   "1503376780353-7e6692767b70",
@@ -270,6 +326,108 @@ function getCarImage(): string {
   return `https://images.unsplash.com/photo-${id}?w=640&h=400&fit=crop&auto=format`;
 }
 
+function generateListingUrl(dealerWebsite: string, category: string, slug: string): string {
+  const id = rand(10000, 99999);
+  switch (category) {
+    case "Online Marketplace":
+      return `${dealerWebsite}/listing/${slug}-${id}`;
+    case "Online Seller":
+      return `${dealerWebsite}/vehicle/${slug}-${id}`;
+    case "Aggregator":
+      return `${dealerWebsite}/search/${slug}-${id}`;
+    case "Specialty":
+      return `${dealerWebsite}/listing/${slug}-${id}`;
+    case "Direct Seller":
+      return `${dealerWebsite}/${slug}-${id}`;
+    default:
+      return `${dealerWebsite}/inventory/${slug}-${id}`;
+  }
+}
+
+// ── Car creation helper ──────────────────────────────────────────────────────
+
+let globalCarCount = 0;
+
+interface DealerRecord {
+  id: string;
+  name: string;
+  website: string;
+}
+
+async function createCar(
+  template: CarTemplate,
+  dealer: DealerRecord,
+  dealerCategory: string,
+): Promise<void> {
+  const trim = pick(template.trims);
+  const year = rand(template.yearRange[0], template.yearRange[1]);
+  const condition = template.isClassic ? "Used" : pickCondition();
+
+  const ageFactor = 1 - (template.yearRange[1] - year) * 0.08;
+  const condFactor = condition === "New" ? 1.1 : condition === "Certified Pre-Owned" ? 0.95 : 0.85;
+  const trimIndex = template.trims.indexOf(trim);
+  const trimFactor = 1 + (trimIndex / template.trims.length) * 0.3;
+  const basePrice = template.priceRange[0] + Math.random() * (template.priceRange[1] - template.priceRange[0]);
+  const price = Math.round(basePrice * ageFactor * condFactor * trimFactor / 100) * 100;
+
+  let mileage: number | null = null;
+  if (condition === "New") {
+    mileage = rand(5, 250);
+  } else if (template.isClassic) {
+    mileage = rand(40000, 150000);
+  } else {
+    const yearsOld = Math.max(0, 2025 - year);
+    mileage = rand(yearsOld * 8000, yearsOld * 15000 + 5000);
+  }
+
+  const extColor = pick(colors);
+  const intColor = pick(interiorColors);
+  const trans = template.model === "Civic" && trim === "Si" ? "6-Speed Manual"
+    : template.model === "Civic" && trim === "Type R" ? "6-Speed Manual"
+    : template.model === "Mustang" && Math.random() > 0.5 ? "6-Speed Manual"
+    : template.model === "Camaro" && Math.random() > 0.5 ? "6-Speed Manual"
+    : template.model === "Challenger" && Math.random() > 0.5 ? "6-Speed Manual"
+    : template.isClassic ? pick(["3-Speed Manual", "4-Speed Manual", "Automatic"])
+    : pick(["Automatic", "Automatic", "Automatic", "CVT", "8-Speed Automatic", "10-Speed Automatic"]);
+  const dt = template.vehicleType === "Truck" ? pick(["4WD", "4WD", "RWD"])
+    : template.brand === "Subaru" ? "AWD"
+    : template.brand === "Audi" ? pick(["AWD", "AWD", "FWD"])
+    : template.brand === "BMW" ? pick(["RWD", "AWD"])
+    : template.brand === "Tesla" ? pick(["RWD", "AWD"])
+    : pick(["FWD", "RWD", "AWD", "4WD"]);
+
+  const desc = generateDescription(year, template.brand, template.model, trim, condition, mileage, extColor, trans);
+  const slug = `${year}-${template.brand}-${template.model}-${trim}`.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+  const listingUrl = generateListingUrl(dealer.website, dealerCategory, slug);
+
+  await prisma.car.create({
+    data: {
+      dealerId: dealer.id,
+      externalId: `${dealer.id}-${slug}-${globalCarCount}`,
+      listingUrl,
+      brand: template.brand,
+      model: template.model,
+      year,
+      trim,
+      price,
+      mileage,
+      condition,
+      vehicleType: template.vehicleType,
+      exteriorColor: extColor,
+      interiorColor: intColor,
+      transmission: trans,
+      fuelType: template.fuelType || "Gasoline",
+      drivetrain: dt,
+      engine: template.engine,
+      vin: generateVIN(),
+      imageUrl: getCarImage(),
+      description: desc,
+      isActive: true,
+    },
+  });
+  globalCarCount++;
+}
+
 // ── Main Seed ────────────────────────────────────────────────────────────────
 
 async function main() {
@@ -278,8 +436,10 @@ async function main() {
   await prisma.car.deleteMany();
   await prisma.dealer.deleteMany();
 
+  // ── Create dealers ───────────────────────────────────────────────────────
   console.log("Seeding dealers...");
-  const createdDealers: Array<{ id: string; name: string; website: string }> = [];
+  const createdDealers: DealerRecord[] = [];
+  const dealerCategoryMap = new Map<string, string>();
 
   for (const dealer of dealers) {
     const d = await prisma.dealer.create({
@@ -293,90 +453,142 @@ async function main() {
       },
     });
     createdDealers.push(d);
+    dealerCategoryMap.set(d.name, dealer.category);
   }
   console.log(`Seeded ${createdDealers.length} dealers.`);
 
-  // Only use scrapable dealers for car listings
   const activeDealers = createdDealers.filter((_, i) => dealers[i].scrapable !== false);
 
-  console.log("Seeding car inventory...");
-  let carCount = 0;
+  // ── Build indexes ────────────────────────────────────────────────────────
+  const templatesByBrand: Record<string, CarTemplate[]> = {};
+  for (const t of carTemplates) {
+    if (!templatesByBrand[t.brand]) templatesByBrand[t.brand] = [];
+    templatesByBrand[t.brand].push(t);
+  }
 
-  for (const template of carTemplates) {
-    // Generate 3-8 listings per template across different dealers
-    const numListings = rand(3, 8);
+  const modernTemplates = carTemplates.filter(t => !t.isClassic);
+  const classicTemplates = carTemplates.filter(t => t.isClassic);
 
-    for (let i = 0; i < numListings; i++) {
-      const dealer = pick(activeDealers);
-      const trim = pick(template.trims);
-      const year = rand(template.yearRange[0], template.yearRange[1]);
-      const condition = pickCondition();
+  // Classify dealers by role
+  const brandDealers = activeDealers.filter(d => dealerBrandMap[d.name]);
+  const multiDealers = activeDealers.filter(d => {
+    const cat = dealerCategoryMap.get(d.name)!;
+    return cat === "NYC Dealership" && !dealerBrandMap[d.name];
+  });
+  const marketplaceDealers = activeDealers.filter(d => dealerCategoryMap.get(d.name) === "Online Marketplace");
+  const onlineSellers = activeDealers.filter(d => dealerCategoryMap.get(d.name) === "Online Seller");
+  const specialtyDealers = activeDealers.filter(d => dealerCategoryMap.get(d.name) === "Specialty");
+  const aggregatorDealers = activeDealers.filter(d => dealerCategoryMap.get(d.name) === "Aggregator");
 
-      // Price varies by year, condition, trim
-      const ageFactor = 1 - (template.yearRange[1] - year) * 0.08;
-      const condFactor = condition === "New" ? 1.1 : condition === "Certified Pre-Owned" ? 0.95 : 0.85;
-      const trimIndex = template.trims.indexOf(trim);
-      const trimFactor = 1 + (trimIndex / template.trims.length) * 0.3;
-      const basePrice = template.priceRange[0] + Math.random() * (template.priceRange[1] - template.priceRange[0]);
-      const price = Math.round(basePrice * ageFactor * condFactor * trimFactor / 100) * 100;
+  // General pool = everyone except brand-specific and specialty
+  const generalPool = [...multiDealers, ...marketplaceDealers, ...onlineSellers, ...aggregatorDealers];
 
-      // Mileage: new cars have very low, used depends on age
-      let mileage: number | null = null;
-      if (condition === "New") {
-        mileage = rand(5, 250);
-      } else {
-        const yearsOld = Math.max(0, 2025 - year);
-        mileage = rand(yearsOld * 8000, yearsOld * 15000 + 5000);
+  const dealerCarCounts = new Map<string, number>();
+  for (const d of activeDealers) dealerCarCounts.set(d.id, 0);
+
+  function trackCreate(dealerId: string) {
+    dealerCarCounts.set(dealerId, (dealerCarCounts.get(dealerId) || 0) + 1);
+  }
+
+  // ── Phase 1: Brand-aligned dealer seeding ────────────────────────────────
+  console.log("Phase 1: Seeding brand-aligned inventory...");
+  let phase1Count = 0;
+
+  for (const dealer of brandDealers) {
+    const brands = dealerBrandMap[dealer.name];
+    const category = dealerCategoryMap.get(dealer.name)!;
+
+    for (const brand of brands) {
+      const templates = templatesByBrand[brand] || [];
+      for (const template of templates) {
+        if (template.isClassic) continue;
+        const numCars = rand(2, 4);
+        for (let i = 0; i < numCars; i++) {
+          await createCar(template, dealer, category);
+          trackCreate(dealer.id);
+          phase1Count++;
+        }
       }
+    }
+  }
+  console.log(`  Phase 1: ${phase1Count} cars across ${brandDealers.length} brand dealers`);
 
-      const extColor = pick(colors);
-      const intColor = pick(interiorColors);
-      const trans = template.model === "Civic" && trim === "Si" ? "6-Speed Manual"
-        : template.model === "Civic" && trim === "Type R" ? "6-Speed Manual"
-        : template.model === "Mustang" && Math.random() > 0.5 ? "6-Speed Manual"
-        : template.model === "Camaro" && Math.random() > 0.5 ? "6-Speed Manual"
-        : template.model === "Challenger" && Math.random() > 0.5 ? "6-Speed Manual"
-        : pick(["Automatic", "Automatic", "Automatic", "CVT", "8-Speed Automatic", "10-Speed Automatic"]);
-      const dt = template.vehicleType === "Truck" ? pick(["4WD", "4WD", "RWD"])
-        : template.brand === "Subaru" ? "AWD"
-        : template.brand === "Audi" ? pick(["AWD", "AWD", "FWD"])
-        : template.brand === "BMW" ? pick(["RWD", "AWD"])
-        : pick(drivetrains);
+  // ── Phase 2: General pool seeding ────────────────────────────────────────
+  console.log("Phase 2: Seeding general pool inventory...");
+  let phase2Count = 0;
 
-      const desc = generateDescription(year, template.brand, template.model, trim, condition, mileage, extColor, trans);
-      const slug = `${year}-${template.brand}-${template.model}-${trim}`.toLowerCase().replace(/[^a-z0-9]+/g, "-");
-      const listingUrl = `${dealer.website}/inventory/${slug}-${rand(10000, 99999)}`;
-
-      await prisma.car.create({
-        data: {
-          dealerId: dealer.id,
-          externalId: `${dealer.id}-${slug}-${carCount}`,
-          listingUrl,
-          brand: template.brand,
-          model: template.model,
-          year,
-          trim,
-          price,
-          mileage,
-          condition,
-          vehicleType: template.vehicleType,
-          exteriorColor: extColor,
-          interiorColor: intColor,
-          transmission: trans,
-          fuelType: template.fuelType || "Gasoline",
-          drivetrain: dt,
-          engine: template.engine,
-          vin: generateVIN(),
-          imageUrl: getCarImage(),
-          description: desc,
-          isActive: true,
-        },
-      });
-      carCount++;
+  // Modern templates for general dealers
+  for (const template of modernTemplates) {
+    const numListings = rand(3, 5);
+    for (let i = 0; i < numListings; i++) {
+      const dealer = pick(generalPool);
+      const category = dealerCategoryMap.get(dealer.name)!;
+      await createCar(template, dealer, category);
+      trackCreate(dealer.id);
+      phase2Count++;
     }
   }
 
-  console.log(`Seeded ${carCount} car listings across ${activeDealers.length} active dealers.`);
+  // Classic templates for specialty dealers
+  for (const template of classicTemplates) {
+    const numListings = rand(3, 6);
+    for (let i = 0; i < numListings; i++) {
+      const dealer = pick(specialtyDealers);
+      const category = dealerCategoryMap.get(dealer.name)!;
+      await createCar(template, dealer, category);
+      trackCreate(dealer.id);
+      phase2Count++;
+    }
+  }
+  console.log(`  Phase 2: ${phase2Count} cars across general and specialty dealers`);
+
+  // ── Phase 3: Gap-filling ─────────────────────────────────────────────────
+  console.log("Phase 3: Gap-filling dealers with low inventory...");
+  let phase3Count = 0;
+  const MIN_CARS = 3;
+
+  for (const dealer of activeDealers) {
+    const count = dealerCarCounts.get(dealer.id) || 0;
+    if (count >= MIN_CARS) continue;
+
+    const deficit = MIN_CARS - count;
+    const category = dealerCategoryMap.get(dealer.name)!;
+    const brands = dealerBrandMap[dealer.name];
+
+    for (let i = 0; i < deficit; i++) {
+      let template: CarTemplate;
+      if (brands) {
+        // Brand dealer: use brand templates
+        const brandTemplates = brands.flatMap(b => (templatesByBrand[b] || []).filter(t => !t.isClassic));
+        template = brandTemplates.length > 0 ? pick(brandTemplates) : pick(modernTemplates);
+      } else if (category === "Specialty") {
+        template = classicTemplates.length > 0 ? pick(classicTemplates) : pick(modernTemplates);
+      } else {
+        template = pick(modernTemplates);
+      }
+      await createCar(template, dealer, category);
+      trackCreate(dealer.id);
+      phase3Count++;
+    }
+  }
+  console.log(`  Phase 3: ${phase3Count} cars gap-filled`);
+
+  // ── Summary ──────────────────────────────────────────────────────────────
+  const total = phase1Count + phase2Count + phase3Count;
+  const dealersWithCars = Array.from(dealerCarCounts.values()).filter(c => c > 0).length;
+  const nonScrapable = dealers.filter(d => d.scrapable === false).map(d => d.name);
+
+  console.log(`\nSeed complete!`);
+  console.log(`  Total cars: ${total}`);
+  console.log(`  Dealers with inventory: ${dealersWithCars} / ${activeDealers.length} active`);
+  console.log(`  Non-scrapable (0 cars): ${nonScrapable.join(", ")}`);
+
+  // Per-dealer breakdown
+  console.log(`\nPer-dealer inventory:`);
+  for (const dealer of createdDealers) {
+    const count = dealerCarCounts.get(dealer.id) || 0;
+    if (count > 0) console.log(`  ${dealer.name}: ${count} cars`);
+  }
 }
 
 main()

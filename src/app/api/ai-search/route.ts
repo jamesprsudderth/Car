@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
-import { parseNaturalLanguageQuery } from "@/lib/ai-search-parser";
+import { parseWithOpenAI } from "@/lib/openai-search-parser";
 
 export async function POST(request: NextRequest) {
   try {
@@ -29,8 +29,8 @@ export async function POST(request: NextRequest) {
     const page = Math.max(1, parseInt(body.page || "1", 10));
     const skip = (page - 1) * limit;
 
-    // Parse natural language query into structured filters
-    const { filters, interpretation } = parseNaturalLanguageQuery(query);
+    // Parse natural language query using OpenAI (with regex fallback)
+    const { filters, interpretation } = await parseWithOpenAI(query);
 
     // Build Prisma where clause from parsed filters
     const where: Prisma.CarWhereInput = { isActive: true };
